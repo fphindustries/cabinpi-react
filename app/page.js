@@ -6,10 +6,12 @@ import Grid from "@mui/material/Unstable_Grid2";
 import Typography from '@mui/material/Typography';
 import Title from "./ui/title";
 import Link from "next/link";
-
+import { fetchSensorData } from "./lib/data";
 
 
 export default function Home() {
+  const sensorData = fetchSensorData();
+  console.log(sensorData);
   return (
     <main className={styles.main}>
       <Box sx={{ flexGrow: 1 }}>
