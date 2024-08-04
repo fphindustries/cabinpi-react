@@ -7,6 +7,7 @@ import ResponsiveAppBar from "./ui/responsive-app-bar";
 import { Roboto } from "next/font/google";
 import theme from "../theme";
 import "./globals.css";
+import styles from "./page.module.css";
 
 const roboto = Roboto({
   weight: "400",
@@ -28,7 +29,9 @@ export default function RootLayout({ children }) {
           <ThemeProvider theme={theme}>
             <CssBaseline />
             <ResponsiveAppBar></ResponsiveAppBar>
+            <main className={styles.main}>
             {children}
+            </main>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

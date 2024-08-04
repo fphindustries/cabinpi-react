@@ -1,5 +1,4 @@
 import { css } from "@emotion/react";
-import styles from "./page.module.css";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Grid from "@mui/material/Unstable_Grid2";
@@ -11,9 +10,7 @@ import { fetchSensorData } from "./lib/data";
 
 export default function Home() {
   const sensorData = fetchSensorData();
-  console.log(sensorData);
   return (
-    <main className={styles.main}>
       <Box sx={{ flexGrow: 1 }}>
         <Grid container spacing={2}>
           <Grid xs={8}>
@@ -50,6 +47,5 @@ export default function Home() {
           </Grid>
         </Grid>
       </Box>
-    </main>
   );
 }
