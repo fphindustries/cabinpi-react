@@ -8,10 +8,21 @@
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-11-20",
 	"assets": {
-		"not_found_handling": "single-page-application"
+		"not_found_handling": "single-page-application",
+		"html_handling": "auto-trailing-slash"
 	},
 	"observability": {
 		"enabled": true
+	},
+	"routes": [
+		{
+			"pattern": "beta.cabinpi.com",
+			"zone_name": "cabinpi.com",
+			"custom_domain": true
+		}
+	],
+	"vars": {
+		"VITE_API_BASE_URL": "https://api.cabinpi.com"
 	}
 	/**
 	 * Smart Placement

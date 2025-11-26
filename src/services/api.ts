@@ -1,7 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
 import type { LatestSensorResponse, SensorResponse, PhotoResponse } from '../types/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+// Determine API base URL based on environment
+function getApiBaseUrl(): string {
+  // If running on localhost, use local API server
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:3000'
+  }
+
+  // If deployed, use relative URLs (worker will proxy to api.cabinpi.com)
+  // This avoids CORS issues by making requests same-origin
+  return ''
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 export const apiClient = {
   async getLatestSensorData(): Promise<LatestSensorResponse> {
