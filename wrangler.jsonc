@@ -8,7 +8,7 @@
 	"compatibility_date": "2025-04-04",
 	"main": "./workers/app.ts",
 	"vars": {
-		"VALUE_FROM_CLOUDFLARE": "Hello from Cloudflare"
+		"CF_ACCESS_CLIENT_ID": "d8856e9e0d8a0b501a1ffad7266a6ad3.access"
 	},
 	"observability": {
 		"enabled": true

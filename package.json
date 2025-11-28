@@ -5,17 +5,24 @@
 	"scripts": {
 		"build": "react-router build",
 		"cf-typegen": "wrangler types",
-		"deploy": "npm run build && wrangler deploy",
+		"deploy": "npm run build && wrangler deploy --config build/server/wrangler.json",
 		"dev": "react-router dev",
 		"postinstall": "npm run cf-typegen",
 		"preview": "npm run build && vite preview",
 		"typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
 	},
 	"dependencies": {
+		"@mantine/charts": "^8.3.9",
+		"@mantine/core": "^8.3.9",
+		"@mantine/dates": "^8.3.9",
+		"@mantine/hooks": "^8.3.9",
+		"@tabler/icons-react": "^3.35.0",
+		"date-fns-tz": "^3.2.0",
 		"isbot": "^5.1.31",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
-		"react-router": "^7.9.2"
+		"react-router": "^7.9.2",
+		"recharts": "^3.5.0"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "^1.13.5",
