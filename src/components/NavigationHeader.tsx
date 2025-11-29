@@ -1,45 +1,67 @@
-import { Group, Tabs } from '@mantine/core'
-import { IconHome, IconChartLine, IconPhoto } from '@tabler/icons-react'
+import { Burger, Container, Group, Drawer, Stack, ActionIcon } from '@mantine/core'
 import { Link, useRouterState } from '@tanstack/react-router'
+import { IconRefresh } from '@tabler/icons-react'
+import classes from './NavigationHeader.module.css'
+import { useDisclosure } from '@mantine/hooks'
+import { CabinPiLogo } from './CabinPiLogo'
+
+const links = [
+  { link: '/', label: 'Home' },
+  { link: '/charts', label: 'Charts' },
+  { link: '/photos', label: 'Photos' },
+]
 
 export function NavigationHeader() {
   const router = useRouterState()
   const pathname = router.location.pathname
+  const [opened, { toggle, close }] = useDisclosure(false)
 
-  const activeTab = pathname === '/charts' ? 'charts'
-    : pathname === '/photos' ? 'photos'
-    : 'home'
+  const items = links.map((linkItem) => (
+    <Link
+      key={linkItem.label}
+      to={linkItem.link}
+      className={classes.link}
+      data-active={pathname === linkItem.link || undefined}
+    >
+      {linkItem.label}
+    </Link>
+  ))
 
   return (
-    <Group justify="center" p="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-      <Tabs value={activeTab} variant="outline">
-        <Tabs.List>
-          <Tabs.Tab
-            value="home"
-            leftSection={<IconHome size={16} />}
-            component={Link}
-            to="/"
+    <header className={classes.header}>
+      <Container size="md" className={classes.inner}>
+        <CabinPiLogo size={28} />
+        <Group gap={5} visibleFrom="xs">
+          {items}
+        </Group>
+
+        <Group gap="xs">
+          <ActionIcon
+            onClick={() => window.location.reload()}
+            variant="subtle"
+            color="gray"
+            size="lg"
+            aria-label="Refresh"
           >
-            Dashboard
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="charts"
-            leftSection={<IconChartLine size={16} />}
-            component={Link}
-            to="/charts"
-          >
-            Charts
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="photos"
-            leftSection={<IconPhoto size={16} />}
-            component={Link}
-            to="/photos"
-          >
-            Photos
-          </Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
-    </Group>
+            <IconRefresh size={18} />
+          </ActionIcon>
+          <Burger opened={opened} onClick={toggle} hiddenFrom="xs" size="sm" />
+        </Group>
+      </Container>
+
+      <Drawer
+        opened={opened}
+        onClose={close}
+        size="100%"
+        padding="md"
+        title="Navigation"
+        hiddenFrom="xs"
+        zIndex={1000000}
+      >
+        <Stack gap="md" onClick={close}>
+          {items}
+        </Stack>
+      </Drawer>
+    </header>
   )
 }

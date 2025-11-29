@@ -54,18 +54,7 @@ export function InsideClimateCard({ data }: InsideClimateCardProps) {
           </Stack>
         )}
 
-        {data?.illuminance !== undefined && (
-          <Stack gap="xs">
-            <Group gap="xs">
-              <IconSun size={16} />
-              <Text size="sm" c="dimmed">Indoor Illuminance</Text>
-            </Group>
-            <Group gap="xs" align="baseline">
-              <Text size="lg" fw={600}>{data.illuminance.toLocaleString()}</Text>
-              <Text size="sm" c="dimmed">lux</Text>
-            </Group>
-          </Stack>
-        )}
+
 
         {data?.inHg !== undefined && (
           <Stack gap="xs">
@@ -73,16 +62,6 @@ export function InsideClimateCard({ data }: InsideClimateCardProps) {
             <Group gap="xs" align="baseline">
               <Text size="lg" fw={600}>{data.inHg.toFixed(2)}</Text>
               <Text size="sm" c="dimmed">inHg</Text>
-            </Group>
-          </Stack>
-        )}
-
-        {data?.vocLastMeasured !== undefined && (
-          <Stack gap="xs">
-            <Text size="sm" c="dimmed">VOC (Air Quality)</Text>
-            <Group gap="xs" align="baseline">
-              <Text size="lg" fw={600}>{data.vocLastMeasured.toFixed(1)}</Text>
-              <Text size="sm" c="dimmed">ppb</Text>
             </Group>
           </Stack>
         )}

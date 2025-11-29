@@ -11,15 +11,15 @@ import { createServerFn } from '@tanstack/react-start'
 
 const PACIFIC_TZ = 'America/Los_Angeles'
 
-export const fetchPhotosFn = createServerFn({method: 'GET'})
-  .inputValidator((data:{ date: string }) => data)
-  .handler(async ({data}) => {
-  return fetchPhotos(data.date)
-})
+export const fetchPhotosFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: { date: string }) => data)
+  .handler(async ({ data }) => {
+    return fetchPhotos(data.date)
+  })
 
-export const fetchPhotoImageFn = createServerFn({method: 'GET'})
-  .inputValidator((data:{ filename: string; size?: number }) => data)
-  .handler(async ({data}) => {
+export const fetchPhotoImageFn = createServerFn({ method: 'GET' })
+  .inputValidator((data: { filename: string; size?: number }) => data)
+  .handler(async ({ data }) => {
     return fetchPhotoImage(data.filename, data.size)
   })
 
@@ -33,7 +33,7 @@ export const Route = createFileRoute('/photos')({
   },
   loaderDeps: ({ search }) => ({ date: search.date }),
   loader: async ({ deps }) => {
-    const data = await fetchPhotosFn({data:{date: deps.date || ''}})
+    const data = await fetchPhotosFn({ data: { date: deps.date || '' } })
     return { data, selectedDateStr: deps.date }
   },
 })
@@ -74,7 +74,7 @@ function Photos() {
     if (date) {
       navigate({ search: { date: date.toISOString().split('T')[0] } })
     } else {
-      navigate({ search: {} })
+      navigate({ search: { date: undefined } })
     }
   }
 
@@ -181,35 +181,17 @@ function Photos() {
   return (
     <Container fluid px="xl" py="xl" maw={1920}>
       <Stack gap="xl">
-        <Group justify="space-between">
-          <div>
-            <Title order={1}>Trail Camera Photos</Title>
-            <Text size="sm" c="dimmed">
-              {data?.photos?.length || 0} photos
-            </Text>
-          </div>
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            onClick={() => window.location.reload()}
-            variant="light"
-          >
-            Refresh
-          </Button>
-        </Group>
-
         <Stack gap="md">
           <Group justify="center" gap="md">
             <Button
               onClick={goToPreviousDay}
-              leftSection={<IconChevronLeft size={16} />}
               variant="light"
             >
-              Previous Day
+              <IconChevronLeft size={16} />
             </Button>
 
             <Button
               onClick={() => setShowDatePicker(!showDatePicker)}
-              leftSection={<IconCalendar size={16} />}
               variant="light"
             >
               {displayDate}
@@ -217,11 +199,10 @@ function Photos() {
 
             <Button
               onClick={goToNextDay}
-              rightSection={<IconChevronRight size={16} />}
               variant="light"
               disabled={isAtCurrentDate()}
             >
-              Next Day
+              <IconChevronRight size={16} />
             </Button>
           </Group>
 

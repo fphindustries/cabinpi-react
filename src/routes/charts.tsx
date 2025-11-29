@@ -1,8 +1,8 @@
 import { createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
-import { Container, Title, Stack, Card, SimpleGrid, SegmentedControl, Group, Text, Button, Collapse, LoadingOverlay } from '@mantine/core'
+import { Container, Title, Stack, Card, SimpleGrid, Select, Group, Text, Button, LoadingOverlay } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { LineChart } from '@mantine/charts'
-import { IconCalendar, IconRefresh, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { IconCalendar, IconRefresh, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react'
 import { useState, useMemo } from 'react'
 import { fromZonedTime } from 'date-fns-tz'
 import { fetchSensorData } from '../lib/api'
@@ -176,37 +176,25 @@ function Charts() {
       <Stack gap="xl" pos="relative">
         <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
 
-        <Group justify="space-between">
-          <div>
-            <Title order={1}>Historical Charts</Title>
-            <Text size="sm" c="dimmed">
-              {data?.data?.length || 0} data points
-            </Text>
-          </div>
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            onClick={() => window.location.reload()}
-            variant="light"
-          >
-            Refresh
-          </Button>
-        </Group>
 
         <Stack gap="md">
-          <SegmentedControl
-            value={timeRange}
-            onChange={handleTimeRangeChange}
-            data={[
-              { label: 'Last Hour', value: '1h' },
-              { label: 'Last 6 Hours', value: '6h' },
-              { label: 'Last 24 Hours', value: '24h' },
-              { label: 'Last 7 Days', value: '7d' },
-              { label: 'Specific Day', value: 'day' },
-            ]}
-          />
+          <SimpleGrid cols={{ base: 1, sm: timeRange === 'day' ? 2 : 1 }} spacing="md">
+            <Select
+              leftSection={<IconClock size={16} />}
+              label="Time Range"
+              value={timeRange}
+              onChange={(value) => handleTimeRangeChange(value || '24h')}
+              data={[
+                { label: 'Last Hour', value: '1h' },
+                { label: 'Last 6 Hours', value: '6h' },
+                { label: 'Last 24 Hours', value: '24h' },
+                { label: 'Last 7 Days', value: '7d' },
+                { label: 'Specific Day', value: 'day' },
+              ]}
+              allowDeselect={false}
+            />
 
-          <Collapse in={timeRange === 'day'}>
-            <Stack gap="sm">
+            {timeRange === 'day' && (
               <DatePickerInput
                 leftSection={<IconCalendar size={16} />}
                 label="Select a specific day"
@@ -216,29 +204,29 @@ function Charts() {
                 maxDate={new Date()}
                 clearable
               />
-              {selectedDate && (
-                <Group justify="center" gap="md">
-                  <Button
-                    onClick={goToPreviousDay}
-                    leftSection={<IconChevronLeft size={16} />}
-                    variant="light"
-                  >
-                    Previous Day
-                  </Button>
-                  <Button
-                    onClick={goToNextDay}
-                    rightSection={<IconChevronRight size={16} />}
-                    variant="light"
-                    disabled={selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))}
-                  >
-                    Next Day
-                  </Button>
-                </Group>
-              )}
-            </Stack>
-          </Collapse>
-        </Stack>
+            )}
+          </SimpleGrid>
 
+          {selectedDate && timeRange === 'day' && (
+            <Group justify="center" gap="md">
+              <Button
+                onClick={goToPreviousDay}
+                leftSection={<IconChevronLeft size={16} />}
+                variant="light"
+              >
+                Previous Day
+              </Button>
+              <Button
+                onClick={goToNextDay}
+                rightSection={<IconChevronRight size={16} />}
+                variant="light"
+                disabled={selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))}
+              >
+                Next Day
+              </Button>
+            </Group>
+          )}
+        </Stack>
         <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
           <Card shadow="sm" padding="lg" radius="md" withBorder style={{ gridColumn: '1 / -1' }}>
             <Title order={3} mb="md">Power System Overview</Title>
@@ -329,6 +317,14 @@ function Charts() {
             </div>
           </Card>
         </SimpleGrid>
+        <Group justify="space-between">
+          <div>
+            <Text size="sm" c="dimmed">
+              {data?.data?.length || 0} data points
+            </Text>
+          </div>
+        </Group>
+
       </Stack>
     </Container>
   )

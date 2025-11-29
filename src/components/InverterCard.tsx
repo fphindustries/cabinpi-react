@@ -9,18 +9,55 @@ interface InverterCardProps {
 
 export function InverterCard({ data }: InverterCardProps) {
   const getInverterModeLabel = (mode?: number) => {
-    switch (mode) {
-      case 0: return 'Search'
-      case 1: return 'Inverter'
-      case 2: return 'Charger'
-      case 3: return 'Power Assist'
-      default: return 'Unknown'
+    if (mode === undefined) return 'Unknown'
+
+    const modes: Record<number, string> = {
+      0x00: 'Standby',
+      0x01: 'EQ',
+      0x02: 'Float',
+      0x04: 'Absorb',
+      0x08: 'Bulk',
+      0x09: 'BatSaver',
+      0x10: 'Charge',
+      0x20: 'Off',
+      0x40: 'Invert',
+      0x50: 'Inverter Standby',
+      0x80: 'Search',
     }
+
+    return modes[mode] || `Unknown Mode (0x${mode.toString(16).toUpperCase()})`
   }
 
   const getFaultLabel = (fault?: number) => {
-    if (!fault || fault === 0) return null
-    return `Fault Code: ${fault}`
+    if (fault === undefined || fault === 0x00) return null
+
+    const faults: Record<number, string> = {
+      0x00: 'None',
+      0x01: 'Stuck Relay',
+      0x02: 'DC Overload',
+      0x03: 'AC Overload',
+      0x04: 'Dead Battery',
+      0x05: 'Backfeed',
+      0x08: 'Low Battery',
+      0x09: 'High Battery',
+      0x0a: 'High AC Volts',
+      0x10: 'Bad Bridge',
+      0x12: 'NTC Fault',
+      0x13: 'FET Overload',
+      0x14: 'Internal Fault',
+      0x16: 'Stacker Mode Fault',
+      0x17: 'Stacker No CLK Fault',
+      0x18: 'Stacker CLK PH Fault',
+      0x19: 'Stacker PH Loss Fault',
+      0x20: 'Over Temp',
+      0x21: 'Relay Fault',
+      0x80: 'Charger Fault',
+      0x81: 'High Battery Temp',
+      0x90: 'Open SELCO TCO',
+      0x91: 'CB3 Open Fault',
+    }
+
+    return faults[fault] || `Unknown Fault (0x${fault.toString(16).toUpperCase()})`
   }
 
   return (
@@ -54,7 +91,7 @@ export function InverterCard({ data }: InverterCardProps) {
           </Stack>
 
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Power Output</Text>
+            <Text size="sm" c="dimmed">Output</Text>
             <Group gap="xs" align="baseline">
               <Text size="xl" fw={700}>
                 {data?.inverterVacOut && data?.inverterAacOut

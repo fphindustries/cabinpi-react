@@ -40,31 +40,22 @@ function Home() {
       <Stack gap="xl">
         <Group justify="space-between">
           <div>
-            <Title order={1}>CabinPi Dashboard</Title>
             <Text size="sm" c="dimmed">
-              Last Reading: {sensorData?.data.date
+              Updated: {sensorData?.data.date
                 ? new Date(sensorData.data.date).toLocaleString('en-US', {
-                  dateStyle: 'long',
-                  timeStyle: 'long'
+                  dateStyle: 'short',
+                  timeStyle: 'short'
                 })
                 : 'N/A'}
             </Text>
           </div>
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            onClick={handleRefresh}
-            loading={isRefreshing}
-            variant="light"
-          >
-            Refresh
-          </Button>
         </Group>
 
         <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
-          <WeatherCard data={sensorData?.data} />
-          <InsideClimateCard data={sensorData?.data} />
           <SolarPowerCard data={sensorData?.data} />
           <InverterCard data={sensorData?.data} />
+          <WeatherCard data={sensorData?.data} />
+          <InsideClimateCard data={sensorData?.data} />
         </SimpleGrid>
       </Stack>
     </Container>

@@ -1,5 +1,5 @@
 import { Card, Title, Group, Text, Stack, Badge } from '@mantine/core'
-import { IconCloud, IconWind, IconDroplet, IconUmbrella, IconBolt, IconSun, IconThermometer } from '@tabler/icons-react'
+import { IconCloud, IconWind, IconDroplet, IconUmbrella, IconBolt, IconSun, IconThermometer, IconCompass } from '@tabler/icons-react'
 import type { SensorData } from '../types/api'
 
 interface WeatherCardProps {
@@ -54,7 +54,9 @@ export function WeatherCard({ data }: WeatherCardProps) {
               <Text size="sm" c="dimmed">%</Text>
             </Group>
           </Stack>
+        </Group>
 
+        <Group grow>
           <Stack gap="xs">
             <Group gap="xs">
               <IconUmbrella size={16} />
@@ -65,7 +67,18 @@ export function WeatherCard({ data }: WeatherCardProps) {
               <Text size="sm" c="dimmed">in</Text>
             </Group>
           </Stack>
+          <Stack gap="xs">
+            <Group gap="xs">
+              <IconUmbrella size={16} />
+              <Text size="sm" c="dimmed">Rain Total</Text>
+            </Group>
+            <Group gap="xs" align="baseline">
+              <Text size="lg" fw={600}>{data?.dailyAccumulation?.toFixed(2) || '0.00'}</Text>
+              <Text size="sm" c="dimmed">in</Text>
+            </Group>
+          </Stack>                      
         </Group>
+
         <Group grow>
           <Stack gap="xs">
             <Group gap="xs">
@@ -73,21 +86,16 @@ export function WeatherCard({ data }: WeatherCardProps) {
               <Text size="sm" c="dimmed">Wind Speed</Text>
             </Group>
             <Group gap="xs" align="baseline">
-              <Text size="xl" fw={700}>{data?.windAvg?.toFixed(1) || '—'}</Text>
+              <Text size="xl" fw={700}>{data?.windAvg?.toFixed(1) || '—'} ({data?.windGust?.toFixed(1) || '—'})</Text>
               <Text size="sm" c="dimmed">mph</Text>
             </Group>
           </Stack>
 
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Wind Gust</Text>
-            <Group gap="xs" align="baseline">
-              <Text size="xl" fw={700}>{data?.windGust?.toFixed(1) || '—'}</Text>
-              <Text size="sm" c="dimmed">mph</Text>
+            <Group gap="xs">
+              <IconCompass size={16} />
+              <Text size="sm" c="dimmed">Direction</Text>
             </Group>
-          </Stack>
-
-          <Stack gap="xs">
-            <Text size="sm" c="dimmed">Direction</Text>
             <Group gap="xs" align="baseline">
               <Text size="xl" fw={700}>{getWindDirection(data?.windDirection)}</Text>
               <Text size="sm" c="dimmed">{data?.windDirection?.toFixed(0)}°</Text>
@@ -119,12 +127,29 @@ export function WeatherCard({ data }: WeatherCardProps) {
             </Group>
           </Stack>
         </Group>
-
-        {data?.dailyAccumulation !== undefined && (
-          <Text size="sm" c="dimmed">
-            Daily Precipitation: {data.dailyAccumulation.toFixed(2)} in
-          </Text>
+        <Group grow>
+        {data?.vocLastMeasured !== undefined && (
+          <Stack gap="xs">
+            <Text size="sm" c="dimmed">VOC (Air Quality)</Text>
+            <Group gap="xs" align="baseline">
+              <Text size="lg" fw={600}>{data.vocLastMeasured.toFixed(1)}</Text>
+              <Text size="sm" c="dimmed">ppb</Text>
+            </Group>
+          </Stack>
         )}
+        {data?.illuminance !== undefined && (
+          <Stack gap="xs">
+            <Group gap="xs">
+              <IconSun size={16} />
+              <Text size="sm" c="dimmed">Illuminance</Text>
+            </Group>
+            <Group gap="xs" align="baseline">
+              <Text size="lg" fw={600}>{data.illuminance.toLocaleString()}</Text>
+              <Text size="sm" c="dimmed">lux</Text>
+            </Group>
+          </Stack>
+        )}                  
+        </Group>
 
         {data?.strikeCount !== undefined && data.strikeCount > 0 && (
           <Group gap="xs">
