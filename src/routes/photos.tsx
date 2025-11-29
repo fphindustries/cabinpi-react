@@ -251,7 +251,7 @@ function Photos() {
             const isLoading = loadingImages.has(cacheKey)
             const imageUrl = getPhotoUrl(selectedPhoto, 1024)
 
-            return isLoading ? (
+            return isLoading || !imageUrl ? (
               <Skeleton height="70vh" width="90vw" />
             ) : (
               <Image
@@ -282,7 +282,7 @@ function Photos() {
                   onClick={() => setSelectedPhoto(photo)}
                 >
                   <Card.Section>
-                    {isLoading ? (
+                    {isLoading || !imageUrl ? (
                       <Skeleton height={110} />
                     ) : (
                       <Image

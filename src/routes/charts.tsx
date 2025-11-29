@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Container, Title, Stack, Card, SimpleGrid, SegmentedControl, Group, Text, Button, Collapse } from '@mantine/core'
+import { createFileRoute, useNavigate, useRouterState } from '@tanstack/react-router'
+import { Container, Title, Stack, Card, SimpleGrid, SegmentedControl, Group, Text, Button, Collapse, LoadingOverlay } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { LineChart } from '@mantine/charts'
 import { IconCalendar, IconRefresh, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
@@ -69,6 +69,8 @@ export const Route = createFileRoute('/charts')({
 function Charts() {
   const { data, range: initialRange, selectedDateStr } = Route.useLoaderData()
   const navigate = useNavigate({ from: '/charts' })
+  const routerState = useRouterState()
+  const isLoading = routerState.isLoading
 
   const [timeRange, setTimeRange] = useState<TimeRangeType>(initialRange)
   const [selectedDate, setSelectedDate] = useState<Date | null>(
@@ -100,7 +102,7 @@ function Charts() {
     setTimeRange(newRange)
 
     if (newRange !== 'day') {
-      navigate({ search: { range: newRange } })
+      navigate({ search: { range: newRange, date: undefined } })
     }
   }
 
@@ -127,7 +129,12 @@ function Charts() {
       return { powerSystem: [], temperature: [], wind: [] }
     }
 
-    const powerSystem = validData.map(d => ({
+    // Sort data in ascending chronological order (oldest to newest)
+    const sortedData = validData.sort((a, b) => {
+      return new Date(a.date!).getTime() - new Date(b.date!).getTime()
+    })
+
+    const powerSystem = sortedData.map(d => ({
       date: new Date(d.date!).toLocaleString('en-US', {
         month: 'numeric',
         day: 'numeric',
@@ -139,7 +146,7 @@ function Charts() {
       solarPower: d.watts || null,
     }))
 
-    const temperature = validData.map(d => ({
+    const temperature = sortedData.map(d => ({
       date: new Date(d.date!).toLocaleString('en-US', {
         month: 'numeric',
         day: 'numeric',
@@ -150,7 +157,7 @@ function Charts() {
       outside: d.extF || null,
     }))
 
-    const wind = validData.map(d => ({
+    const wind = sortedData.map(d => ({
       date: new Date(d.date!).toLocaleString('en-US', {
         month: 'numeric',
         day: 'numeric',
@@ -166,7 +173,9 @@ function Charts() {
 
   return (
     <Container fluid px="xl" py="xl" maw={1920}>
-      <Stack gap="xl">
+      <Stack gap="xl" pos="relative">
+        <LoadingOverlay visible={isLoading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
+
         <Group justify="space-between">
           <div>
             <Title order={1}>Historical Charts</Title>
