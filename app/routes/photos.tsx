@@ -110,7 +110,7 @@ export default function Photos({ loaderData }: Route.ComponentProps) {
   const getPhotoUrl = (filename: string, size?: number) => {
     const baseUrl = isDev
       ? `http://localhost:3000/api/photos/${filename}`
-      : `https://api.cabinpi.com/api/photos/${filename}`;
+      : `/api/photos/${filename}`;
     return size ? `${baseUrl}?size=${size}` : baseUrl;
   };
 
