@@ -1,5 +1,5 @@
 {
-  "projectName": "cabinpi-test",
+  "projectName": "cabinpi-react",
   "mode": "file-router",
   "typescript": true,
   "tailwind": true,

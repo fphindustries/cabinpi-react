@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Container, Title, SimpleGrid, Stack, Text, Group, Button } from '@mantine/core'
-import { IconRefresh } from '@tabler/icons-react'
+import { Container, SimpleGrid, Stack, Text, Group } from '@mantine/core'
 import { WeatherCard } from '../components/WeatherCard'
 import { InsideClimateCard } from '../components/InsideClimateCard'
 import { SolarPowerCard } from '../components/SolarPowerCard'
@@ -21,19 +20,6 @@ export const Route = createFileRoute('/')({
 function Home() {
   const initialSensorData = Route.useLoaderData()
   const [sensorData, setSensorData] = useState(initialSensorData)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    try {
-      const newData = await getLatestSensorDataFn()
-      setSensorData(newData)
-    } catch (error) {
-      console.error('Failed to refresh data:', error)
-    } finally {
-      setIsRefreshing(false)
-    }
-  }
 
   return (
     <Container fluid px="xl" py="xl" maw={1920}>

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, useRouterState } from '@tanstack/react-ro
 import { Container, Title, Stack, Card, SimpleGrid, Select, Group, Text, Button, LoadingOverlay } from '@mantine/core'
 import { DatePickerInput } from '@mantine/dates'
 import { LineChart } from '@mantine/charts'
-import { IconCalendar, IconRefresh, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react'
+import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react'
 import { useState, useMemo } from 'react'
 import { fromZonedTime } from 'date-fns-tz'
 import { fetchSensorData } from '../lib/api'
