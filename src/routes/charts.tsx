@@ -116,7 +116,7 @@ function Charts() {
 
   const chartData = useMemo(() => {
     if (!data?.data || data.data.length === 0) {
-      return { powerSystem: [], temperature: [], wind: [] }
+      return { powerSystem: [], temperature: [], wind: [], light: [] }
     }
 
     const validData = data.data.filter(d => {
@@ -168,7 +168,19 @@ function Charts() {
       gust: d.windGust || null,
     }))
 
-    return { powerSystem, temperature, wind }
+    const light = sortedData.map(d => ({
+      date: new Date(d.date!).toLocaleString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      solarRadiation: d.solarRadiation || null,
+      pvWatts: d.watts || null,
+      illuminance: d.illuminance || null,
+    }))
+
+    return { powerSystem, temperature, wind, light }
   }, [data])
 
   return (
@@ -308,6 +320,39 @@ function Charts() {
                   withDots={false}
                   yAxisLabel="mph"
                   yAxisProps={{ domain: [0, 'auto'] }}
+                />
+              ) : (
+                <Stack align="center" justify="center" h={300}>
+                  <Text c="dimmed">No data available for selected time range</Text>
+                </Stack>
+              )}
+            </div>
+          </Card>
+
+          <Card shadow="sm" padding="lg" radius="md" withBorder>
+            <Title order={3} mb="md">Solar Efficiency</Title>
+            <div style={{ height: 300 }}>
+              {chartData.light.length > 0 ? (
+                <LineChart
+                  h={300}
+                  data={chartData.light}
+                  dataKey="date"
+                  series={[
+                    { name: 'solarRadiation', label: 'Solar Radiation', color: 'red.6', yAxisId: 'left'  },
+                    { name: 'pvWatts', label: 'PV Watts', color: 'green.6', yAxisId: 'left'  },
+                    { name: 'illuminance', label: 'Illuminance (lux)', color: 'blue.6', yAxisId: 'right' },                    
+                  ]}
+                  curveType="monotone"
+                  withLegend
+                  legendProps={{ verticalAlign: 'bottom', height: 50 }}
+                  withTooltip
+                  tooltipAnimationDuration={200}
+                  withDots={false}
+                  yAxisLabel="Watts"
+                  yAxisProps={{ domain: [0, 'auto'] }}
+                  withRightYAxis
+                  rightYAxisLabel="lux"
+                  rightYAxisProps={{ domain: [0, 'auto'] }}
                 />
               ) : (
                 <Stack align="center" justify="center" h={300}>
