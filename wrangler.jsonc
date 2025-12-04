@@ -5,24 +5,11 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "cabinpi-react",
-	"compatibility_date": "2025-09-02",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"main": "@tanstack/react-start/server-entry",
+	"compatibility_date": "2025-12-02",
+	"pages_build_output_dir": "./dist",
 	"observability": {
 		"enabled": true
-	},
-	"routes": [
-		{
-			"pattern": "dash.cabinpi.com",
-			"zone_name": "cabinpi.com",
-			"custom_domain": true
-		}
-	],	
-	"vars": {
-		"CF_ACCESS_CLIENT_ID": "d8856e9e0d8a0b501a1ffad7266a6ad3.access"
-	}	
+	}
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
