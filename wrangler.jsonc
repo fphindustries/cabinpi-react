@@ -15,7 +15,7 @@
 	},
 	"routes": [
 		{
-			"pattern": "beta.cabinpi.com",
+			"pattern": "dash.cabinpi.com",
 			"zone_name": "cabinpi.com",
 			"custom_domain": true
 		}
