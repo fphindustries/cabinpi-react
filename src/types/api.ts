@@ -63,3 +63,13 @@ export interface ErrorResponse {
   error: string;
   success: boolean;
 }
+
+export interface SensorIngestRequest {
+  records: SensorData[];
+}
+
+export interface SensorIngestResponse {
+  success: boolean;
+  inserted: number;
+  total: number;
+}

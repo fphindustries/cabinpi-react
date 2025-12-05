@@ -1,0 +1,41 @@
+-- Create measurements table for sensor data
+CREATE TABLE IF NOT EXISTS measurements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    ampHours REAL,
+    avgStrikeDistance REAL,
+    batteryState INTEGER,
+    chargeState INTEGER,
+    classicState INTEGER,
+    dailyAccumulation REAL,
+    dispavgVbatt REAL,
+    dispavgVpv REAL,
+    extF REAL,
+    extHumidity REAL,
+    humidity REAL,
+    ibattDisplay REAL,
+    illuminance REAL,
+    inHg REAL,
+    intF REAL,
+    inverterAacOut REAL,
+    inverterFault INTEGER,
+    inverterMode INTEGER,
+    inverterOn INTEGER,
+    inverterVacOut REAL,
+    kwhours REAL,
+    niteMinutesNoPwr INTEGER,
+    pvInputCurrent REAL,
+    rain REAL,
+    solarRadiation REAL,
+    strikeCount INTEGER,
+    uv REAL,
+    vocLastMeasured REAL,
+    watts REAL,
+    windAvg REAL,
+    windDirection REAL,
+    windGust REAL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create index on date for faster queries
+CREATE INDEX IF NOT EXISTS idx_measurements_date ON measurements(date DESC);
