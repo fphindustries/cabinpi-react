@@ -1,4 +1,4 @@
-import type { LatestSensorResponse, SensorResponse, PhotoResponse } from '../types/api';
+import type { LatestSensorResponse, SensorResponse, PhotoResponse, UserResponse } from '../types/api';
 
 const API_BASE = '/api';
 
@@ -44,4 +44,14 @@ export function getPhotoUrl(filename: string, size?: number): string {
   return size
     ? `${API_BASE}/photos/${filename}?size=${size}`
     : `${API_BASE}/photos/${filename}`;
+}
+
+export async function getCurrentUser(): Promise<UserResponse> {
+  const response = await fetch(`${API_BASE}/user`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch user: ${response.status}`);
+  }
+
+  return response.json();
 }

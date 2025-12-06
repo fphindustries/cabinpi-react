@@ -73,3 +73,16 @@ export interface SensorIngestResponse {
   inserted: number;
   total: number;
 }
+
+export interface User {
+  email: string;
+  userId: string | null;
+  name: string;
+}
+
+export interface UserResponse {
+  success: boolean;
+  authenticated: boolean;
+  user?: User;
+  error?: string;
+}
