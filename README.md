@@ -33,7 +33,18 @@ npm run deploy
 
 ### Development Workflow
 
-**Option 1: Full stack development (with API)**
+**Recommended: All-in-one PowerShell script (Windows)**
+```powershell
+# Single command to start everything
+.\dev.ps1
+```
+- Automatically builds, starts Functions server, and starts Vite dev server
+- Proper startup sequencing with health checks
+- Runs in a single terminal (perfect for VS Code integrated terminal)
+- Press Ctrl+C once to stop all processes cleanly
+- Displays accumulated logs from both servers on exit
+
+**Manual: Full stack development (with API)**
 ```bash
 # Terminal 1: Build once for Functions to serve
 npm run build
@@ -48,7 +59,7 @@ npm run dev
 - API calls proxy to wrangler at `http://localhost:8788`
 - Best for developing with live API data
 
-**Option 2: Frontend-only development (simpler)**
+**Manual: Frontend-only development (simpler)**
 ```bash
 npm run dev
 # Vite dev server at http://localhost:5173
@@ -57,7 +68,7 @@ npm run dev
 - Fastest for UI-only development
 - Good for working on components without data
 
-**Option 3: Production-like testing**
+**Manual: Production-like testing**
 ```bash
 npm run preview
 # Full stack at http://localhost:8788
@@ -69,16 +80,19 @@ npm run preview
 ```
 ├── functions/           # Cloudflare Pages Functions (API proxy)
 │   └── api/
-│       ├── sensors/     # Sensor data endpoints
-│       └── photos/      # Photo endpoints
+│       ├── sensors/     # Sensor data endpoints (latest, query, ingest)
+│       └── photos/      # Photo endpoints (list, individual)
+├── migrations/          # Database migration files (D1)
 ├── src/
 │   ├── components/      # React components (cards)
-│   ├── lib/            # API utilities
-│   ├── pages/          # Page components (Home, Charts, Photos)
-│   ├── types/          # TypeScript type definitions
-│   ├── App.tsx         # App shell with navigation
-│   └── main.tsx        # Entry point
-└── dist/               # Build output
+│   ├── lib/
+│   │   ├── api.ts       # API client utilities
+│   │   └── dateUtils.ts # Shared date formatting utilities
+│   ├── pages/           # Page components (Home, Charts, Photos)
+│   ├── types/           # TypeScript type definitions
+│   ├── App.tsx          # App shell with navigation
+│   └── main.tsx         # Entry point
+└── dist/                # Build output
 ```
 
 ## Environment Variables
@@ -87,23 +101,26 @@ The Cloudflare Pages Functions require the following environment variables to be
 
 - `CF_ACCESS_CLIENT_ID`: Cloudflare Access client ID for API authentication
 - `CF_ACCESS_CLIENT_SECRET`: Cloudflare Access client secret for API authentication
+- `cabinpi_db`: D1 Database binding (configured in wrangler.jsonc)
 
 ## Pages Functions
 
-The application uses Cloudflare Pages Functions to proxy requests to the protected API at api.cabinpi.com:
+The application uses Cloudflare Pages Functions to proxy requests to the protected API at api.cabinpi.com and to interact with the D1 database:
 
-- `/api/sensors/latest` - Get latest sensor readings
-- `/api/sensors?start=&stop=&limit=` - Get historical sensor data
-- `/api/photos?date=` - Get photos for a date
-- `/api/photos/:filename?size=` - Get a specific photo
+- `/api/sensors/latest` - Get latest sensor readings (from api.cabinpi.com)
+- `/api/sensors?start=&stop=&limit=` - Get historical sensor data (from D1 database)
+- `/api/sensors/ingest` - Ingest sensor data into D1 database
+- `/api/photos?date=` - Get photos for a date (from api.cabinpi.com)
+- `/api/photos/:filename?size=` - Get a specific photo (from api.cabinpi.com)
 
 ## Tech Stack
 
 - React 19
 - TypeScript
 - Mantine UI (components, charts, dates)
-- React Router (client-side routing)
+- React Router v7 (client-side routing)
 - Recharts (chart rendering)
-- date-fns (date manipulation)
+- date-fns-tz (timezone-aware date manipulation)
 - Cloudflare Pages (hosting and functions)
+- Cloudflare D1 (serverless database)
 - Vite (build tool)

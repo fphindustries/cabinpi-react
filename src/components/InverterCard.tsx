@@ -4,7 +4,6 @@ import type { SensorData } from '../types/api'
 
 interface InverterCardProps {
   data?: SensorData
-  loading?: boolean
 }
 
 export function InverterCard({ data }: InverterCardProps) {

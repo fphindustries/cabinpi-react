@@ -14,6 +14,7 @@ import {
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { fetchPhotos, getPhotoUrl } from '../lib/api';
+import { formatDateOnly } from '../lib/dateUtils';
 import type { PhotoResponse, Photo } from '../types/api';
 
 export default function Photos() {
@@ -45,13 +46,6 @@ export default function Photos() {
 
     fetchData();
   }, [selectedDateStr]);
-
-  const formatDateOnly = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const handleDateChange = (value: Date | string | null) => {
     if (value) {

@@ -4,7 +4,6 @@ import type { SensorData } from '../types/api'
 
 interface SolarPowerCardProps {
   data?: SensorData
-  loading?: boolean
 }
 
 export function SolarPowerCard({ data }: SolarPowerCardProps) {

@@ -4,7 +4,6 @@ import type { SensorData } from '../types/api'
 
 interface InsideClimateCardProps {
   data?: SensorData
-  loading?: boolean
 }
 
 export function InsideClimateCard({ data }: InsideClimateCardProps) {

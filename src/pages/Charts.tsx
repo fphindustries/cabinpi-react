@@ -16,6 +16,7 @@ import { LineChart } from '@mantine/charts';
 import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react';
 import { fromZonedTime } from 'date-fns-tz';
 import { fetchSensorData } from '../lib/api';
+import { formatDateOnly } from '../lib/dateUtils';
 import type { SensorResponse } from '../types/api';
 
 const PACIFIC_TZ = 'America/Los_Angeles';
@@ -83,13 +84,6 @@ export default function Charts() {
 
     fetchData();
   }, [timeRange, selectedDateStr]);
-
-  const formatDateOnly = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const handleTimeRangeChange = (value: string | null) => {
     if (!value) return;

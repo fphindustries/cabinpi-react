@@ -4,7 +4,6 @@ import type { SensorData } from '../types/api'
 
 interface WeatherCardProps {
   data?: SensorData
-  loading?: boolean
 }
 
 export function WeatherCard({ data }: WeatherCardProps) {
