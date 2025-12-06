@@ -46,31 +46,6 @@ interface IngestRequest {
 
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {
-    // Verify authentication via Service Token
-    // const authHeader = context.request.headers.get('Authorization');
-    // const expectedToken = context.env.CF_ACCESS_CLIENT_SECRET;
-
-    // if (!authHeader || !expectedToken) {
-    //   return new Response(JSON.stringify({
-    //     success: false,
-    //     error: 'Unauthorized: Missing authentication'
-    //   }), {
-    //     status: 401,
-    //     headers: { 'Content-Type': 'application/json' }
-    //   });
-    // }
-
-    // // Extract bearer token
-    // const token = authHeader.replace('Bearer ', '');
-    // if (token !== expectedToken) {
-    //   return new Response(JSON.stringify({
-    //     success: false,
-    //     error: 'Unauthorized: Invalid token'
-    //   }), {
-    //     status: 401,
-    //     headers: { 'Content-Type': 'application/json' }
-    //   });
-    // }
 
     // Parse request body
     const body = await context.request.json() as IngestRequest;
@@ -93,6 +68,14 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
       // Validate required fields
       if (!record.date) {
         continue; // Skip records without date
+      }
+
+      // Apply inverter validation rules
+      // If inverterFault > 0 or inverterOn is false, set inverter outputs to null
+      if ((record.inverterFault && record.inverterFault > 0) || !record.inverterOn) {
+        record.inverterAacOut = undefined;
+        record.inverterVacOut = undefined;
+        record.inverterOn = false;
       }
 
       // Insert record
