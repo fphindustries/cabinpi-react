@@ -1,36 +1,46 @@
-export async function onRequest(context: any) {
-  const apiUrl = 'https://api.cabinpi.com/api/sensors/latest';
+interface Env {
+  cabinpi_db: D1Database;
+}
 
+export async function onRequest(context: { env: Env }) {
   try {
-    const headers = new Headers();
+    const db = context.env.cabinpi_db;
 
-    // Add Cloudflare Access credentials from environment
-    const clientId = context.env.CF_ACCESS_CLIENT_ID;
-    const clientSecret = context.env.CF_ACCESS_CLIENT_SECRET;
+    // Query the latest measurement from D1
+    const result = await db.prepare(`
+      SELECT
+        date, ampHours, avgStrikeDistance, batteryState, chargeState, classicState,
+        dailyAccumulation, dispavgVbatt, dispavgVpv, extF, extHumidity, humidity,
+        ibattDisplay, illuminance, inHg, intF, inverterAacOut, inverterFault,
+        inverterMode, inverterOn, inverterVacOut, kwhours, niteMinutesNoPwr,
+        pvInputCurrent, rain, solarRadiation, strikeCount, uv, vocLastMeasured,
+        watts, windAvg, windDirection, windGust
+      FROM measurements
+      ORDER BY date DESC
+      LIMIT 1
+    `).first();
 
-    if (clientId && clientSecret) {
-      headers.set('CF-Access-Client-Id', clientId);
-      headers.set('CF-Access-Client-Secret', clientSecret);
-    }
-
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
+    if (!result) {
       return new Response(JSON.stringify({
         success: false,
-        error: `API request failed: ${response.status}`
+        error: 'No measurements found'
       }), {
-        status: response.status,
+        status: 404,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    const data = await response.json();
+    // Convert inverterOn from integer to boolean
+    const data = {
+      ...result,
+      inverterOn: result.inverterOn === 1
+    };
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({
+      success: true,
+      count: 1,
+      data
+    }), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'

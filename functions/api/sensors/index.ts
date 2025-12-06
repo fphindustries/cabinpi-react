@@ -1,8 +1,13 @@
-export async function onRequest(context: any) {
+interface Env {
+  cabinpi_db: D1Database;
+}
+
+export async function onRequest(context: { request: Request; env: Env }) {
   const url = new URL(context.request.url);
   const start = url.searchParams.get('start');
   const stop = url.searchParams.get('stop');
-  const limit = url.searchParams.get('limit') || '1000';
+  const limitStr = url.searchParams.get('limit') || '1000';
+  const limit = parseInt(limitStr, 10);
 
   if (!start || !stop) {
     return new Response(JSON.stringify({
@@ -14,38 +19,46 @@ export async function onRequest(context: any) {
     });
   }
 
-  const apiUrl = `https://api.cabinpi.com/api/sensors?start=${start}&stop=${stop}&limit=${limit}`;
+  // Validate limit
+  if (isNaN(limit) || limit < 1 || limit > 1000) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Invalid limit parameter (must be 1-1000)'
+    }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 
   try {
-    const headers = new Headers();
+    const db = context.env.cabinpi_db;
 
-    // Add Cloudflare Access credentials from environment
-    const clientId = context.env.CF_ACCESS_CLIENT_ID;
-    const clientSecret = context.env.CF_ACCESS_CLIENT_SECRET;
+    // Query measurements within the date range
+    const results = await db.prepare(`
+      SELECT
+        date, ampHours, avgStrikeDistance, batteryState, chargeState, classicState,
+        dailyAccumulation, dispavgVbatt, dispavgVpv, extF, extHumidity, humidity,
+        ibattDisplay, illuminance, inHg, intF, inverterAacOut, inverterFault,
+        inverterMode, inverterOn, inverterVacOut, kwhours, niteMinutesNoPwr,
+        pvInputCurrent, rain, solarRadiation, strikeCount, uv, vocLastMeasured,
+        watts, windAvg, windDirection, windGust
+      FROM measurements
+      WHERE date >= ?1 AND date <= ?2
+      ORDER BY date DESC
+      LIMIT ?3
+    `).bind(start, stop, limit).all();
 
-    if (clientId && clientSecret) {
-      headers.set('CF-Access-Client-Id', clientId);
-      headers.set('CF-Access-Client-Secret', clientSecret);
-    }
+    // Convert inverterOn from integer to boolean for all results
+    const data = results.results?.map(row => ({
+      ...row,
+      inverterOn: row.inverterOn === 1
+    })) || [];
 
-    const response = await fetch(apiUrl, {
-      method: 'GET',
-      headers,
-    });
-
-    if (!response.ok) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `API request failed: ${response.status}`
-      }), {
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const data = await response.json();
-
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({
+      success: true,
+      count: data.length,
+      data
+    }), {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
