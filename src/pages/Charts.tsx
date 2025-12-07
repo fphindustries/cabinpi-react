@@ -1,25 +1,23 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Title,
   Stack,
-  Card,
   SimpleGrid,
   Select,
   Group,
   Text,
   Button,
-  LoadingOverlay,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { LineChart } from '@mantine/charts';
 import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react';
-import { fromZonedTime } from 'date-fns-tz';
+import { PowerSystemChart } from '../components/charts/PowerSystemChart';
+import { TemperatureChart } from '../components/charts/TemperatureChart';
+import { WindSpeedChart } from '../components/charts/WindSpeedChart';
+import { WindDirectionChart } from '../components/charts/WindDirectionChart';
+import { SolarEfficiencyChart } from '../components/charts/SolarEfficiencyChart';
 import { fetchSensorData } from '../lib/api';
 import { formatDateOnly } from '../lib/dateUtils';
 import type { SensorResponse } from '../types/api';
-
-const PACIFIC_TZ = 'America/Los_Angeles';
 
 type TimeRangeType = '1h' | '6h' | '24h' | '7d' | 'day';
 
@@ -42,6 +40,28 @@ export default function Charts() {
     async function fetchData() {
       try {
         setLoading(true);
+
+        // Helper to format date as Pacific time string in ISO format
+        const formatAsPacificTime = (date: Date): string => {
+          // Convert to Pacific time using toLocaleString
+          const pacificStr = date.toLocaleString('en-US', {
+            timeZone: 'America/Los_Angeles',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+
+          // Parse the result and format as "YYYY-MM-DDTHH:MM:SS" (ISO format)
+          // toLocaleString returns "MM/DD/YYYY, HH:MM:SS"
+          const [datePart, timePart] = pacificStr.split(', ');
+          const [month, day, year] = datePart.split('/');
+          return `${year}-${month}-${day}T${timePart}`;
+        };
+
         const now = new Date();
         let start = new Date();
         let stop = now;
@@ -61,18 +81,24 @@ export default function Charts() {
             break;
           case 'day':
             if (selectedDate) {
+              // Create date at midnight Pacific time
               const year = selectedDate.getFullYear();
               const month = selectedDate.getMonth();
               const day = selectedDate.getDate();
-              start = fromZonedTime(new Date(year, month, day, 0, 0, 0, 0), PACIFIC_TZ);
-              stop = fromZonedTime(new Date(year, month, day, 23, 59, 59, 999), PACIFIC_TZ);
+
+              // Create a date string and parse it as if it's Pacific time
+              start = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00`);
+              stop = new Date(`${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}T23:59:59`);
             } else {
               start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             }
             break;
         }
 
-        const result = await fetchSensorData(start.toISOString(), stop.toISOString(), 1000);
+        const startParam = formatAsPacificTime(start);
+        const stopParam = formatAsPacificTime(stop);
+
+        const result = await fetchSensorData(startParam, stopParam, 1000);
         setData(result);
         setError(null);
       } catch (err) {
@@ -129,79 +155,25 @@ export default function Charts() {
     }
   };
 
-  const chartData = useMemo(() => {
+  const validData = useMemo(() => {
     if (!data?.data || data.data.length === 0) {
-      return { powerSystem: [], temperature: [], wind: [], light: [] };
+      return [];
     }
 
-    const validData = data.data.filter(d => {
+    const filtered = data.data.filter(d => {
       if (!d.date) return false;
       const date = new Date(d.date);
       return !isNaN(date.getTime());
     });
 
-    if (validData.length === 0) {
-      return { powerSystem: [], temperature: [], wind: [], light: [] };
-    }
-
     // Sort data in ascending chronological order (oldest to newest)
-    const sortedData = validData.sort((a, b) => {
+    return filtered.sort((a, b) => {
       return new Date(a.date!).getTime() - new Date(b.date!).getTime();
     });
-
-    const powerSystem = sortedData.map(d => ({
-      date: new Date(d.date!).toLocaleString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      batteryVoltage: d.dispavgVbatt || null,
-      inverterCurrent: d.inverterAacOut || null,
-      solarPower: d.watts || null,
-    }));
-
-    const temperature = sortedData.map(d => ({
-      date: new Date(d.date!).toLocaleString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      inside: d.intF || null,
-      outside: d.extF || null,
-    }));
-
-    const wind = sortedData.map(d => ({
-      date: new Date(d.date!).toLocaleString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      avgSpeed: d.windAvg || null,
-      gust: d.windGust || null,
-    }));
-
-    const light = sortedData.map(d => ({
-      date: new Date(d.date!).toLocaleString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
-      solarRadiation: d.solarRadiation || null,
-      pvWatts: d.watts || null,
-      illuminance: d.illuminance || null,
-    }));
-
-    return { powerSystem, temperature, wind, light };
   }, [data]);
 
   return (
     <Stack gap="xl" pos="relative">
-      <LoadingOverlay visible={loading} zIndex={1000} overlayProps={{ radius: "sm", blur: 2 }} />
-
       {error && (
         <Text c="red" ta="center" py="xl">{error}</Text>
       )}
@@ -259,127 +231,11 @@ export default function Charts() {
       </Stack>
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
-        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ gridColumn: '1 / -1' }}>
-          <Title order={3} mb="md">Power System Overview</Title>
-          <div style={{ height: 400 }}>
-            {chartData.powerSystem.length > 0 ? (
-              <LineChart
-                h={400}
-                data={chartData.powerSystem}
-                dataKey="date"
-                series={[
-                  { name: 'batteryVoltage', label: 'Battery Voltage (V)', color: 'blue.6', yAxisId: 'left' },
-                  { name: 'inverterCurrent', label: 'Inverter AC Current (A)', color: 'orange.6', yAxisId: 'right' },
-                  { name: 'solarPower', label: 'Solar Power (W)', color: 'green.6', yAxisId: 'right' },
-                ]}
-                curveType="monotone"
-                withLegend
-                legendProps={{ verticalAlign: 'top', height: 50 }}
-                withTooltip
-                tooltipAnimationDuration={200}
-                withDots={false}
-                yAxisProps={{ domain: [10, 16] }}
-                withRightYAxis
-                rightYAxisLabel="A / W"
-                yAxisLabel="Voltage (V)"
-              />
-            ) : (
-              <Stack align="center" justify="center" h={400}>
-                <Text c="dimmed">No data available for selected time range</Text>
-              </Stack>
-            )}
-          </div>
-        </Card>
-
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Title order={3} mb="md">Temperature</Title>
-          <div style={{ height: 300 }}>
-            {chartData.temperature.length > 0 ? (
-              <LineChart
-                h={300}
-                data={chartData.temperature}
-                dataKey="date"
-                series={[
-                  { name: 'inside', label: 'Inside Temperature', color: 'red.6' },
-                  { name: 'outside', label: 'Outside Temperature', color: 'blue.6' },
-                ]}
-                curveType="monotone"
-                withLegend
-                legendProps={{ verticalAlign: 'top', height: 50 }}
-                withTooltip
-                tooltipAnimationDuration={200}
-                withDots={false}
-                yAxisLabel="°F"
-              />
-            ) : (
-              <Stack align="center" justify="center" h={300}>
-                <Text c="dimmed">No data available for selected time range</Text>
-              </Stack>
-            )}
-          </div>
-        </Card>
-
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Title order={3} mb="md">Wind Speed</Title>
-          <div style={{ height: 300 }}>
-            {chartData.wind.length > 0 ? (
-              <LineChart
-                h={300}
-                data={chartData.wind}
-                dataKey="date"
-                series={[
-                  { name: 'avgSpeed', label: 'Wind Speed', color: 'cyan.6' },
-                  { name: 'gust', label: 'Wind Gust', color: 'violet.6' },
-                ]}
-                curveType="monotone"
-                withLegend
-                legendProps={{ verticalAlign: 'bottom', height: 50 }}
-                withTooltip
-                tooltipAnimationDuration={200}
-                withDots={false}
-                yAxisLabel="mph"
-                yAxisProps={{ domain: [0, 'auto'] }}
-              />
-            ) : (
-              <Stack align="center" justify="center" h={300}>
-                <Text c="dimmed">No data available for selected time range</Text>
-              </Stack>
-            )}
-          </div>
-        </Card>
-
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Title order={3} mb="md">Solar Efficiency</Title>
-          <div style={{ height: 300 }}>
-            {chartData.light.length > 0 ? (
-              <LineChart
-                h={300}
-                data={chartData.light}
-                dataKey="date"
-                series={[
-                  { name: 'solarRadiation', label: 'Solar Radiation', color: 'red.6', yAxisId: 'left' },
-                  { name: 'pvWatts', label: 'PV Watts', color: 'green.6', yAxisId: 'left' },
-                  { name: 'illuminance', label: 'Illuminance (lux)', color: 'blue.6', yAxisId: 'right' },
-                ]}
-                curveType="monotone"
-                withLegend
-                legendProps={{ verticalAlign: 'bottom', height: 50 }}
-                withTooltip
-                tooltipAnimationDuration={200}
-                withDots={false}
-                yAxisLabel="Watts"
-                yAxisProps={{ domain: [0, 'auto'] }}
-                withRightYAxis
-                rightYAxisLabel="lux"
-                rightYAxisProps={{ domain: [0, 'auto'] }}
-              />
-            ) : (
-              <Stack align="center" justify="center" h={300}>
-                <Text c="dimmed">No data available for selected time range</Text>
-              </Stack>
-            )}
-          </div>
-        </Card>
+        <PowerSystemChart data={validData} loading={loading} />
+        <WindSpeedChart data={validData} loading={loading} />
+        <WindDirectionChart data={validData} loading={loading} />
+        <TemperatureChart data={validData} loading={loading} />
+        <SolarEfficiencyChart data={validData} loading={loading} />
       </SimpleGrid>
 
       <Group justify="space-between">

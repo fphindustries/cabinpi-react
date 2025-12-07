@@ -1,6 +1,5 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
-import '@mantine/charts/styles.css';
 import { MantineProvider, AppShell, Group, Title, Burger, NavLink, Container, Avatar, Text, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
