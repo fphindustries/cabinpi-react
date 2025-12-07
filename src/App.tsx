@@ -3,11 +3,12 @@ import '@mantine/dates/styles.css';
 import { MantineProvider, AppShell, Group, Title, Burger, NavLink, Container, Avatar, Text, Menu } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { IconHome, IconChartLine, IconPhoto, IconUser } from '@tabler/icons-react';
+import { IconHome, IconChartLine, IconPhoto, IconUser, IconChartBar } from '@tabler/icons-react';
 import { useState, useEffect } from 'react';
 import Home from './pages/Home';
 import Charts from './pages/Charts';
 import Photos from './pages/Photos';
+import Analysis from './pages/Analysis';
 import { CabinPiLogo } from './components/CabinPiLogo';
 import { getCurrentUser } from './lib/api';
 import type { User } from './types/api';
@@ -88,6 +89,14 @@ function Navigation() {
         />
         <NavLink
           component={Link}
+          to="/analysis"
+          label="Analysis"
+          leftSection={<IconChartBar size={20} />}
+          active={location.pathname === '/analysis'}
+          onClick={close}
+        />
+        <NavLink
+          component={Link}
           to="/photos"
           label="Photos"
           leftSection={<IconPhoto size={20} />}
@@ -101,6 +110,7 @@ function Navigation() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/charts" element={<Charts />} />
+            <Route path="/analysis" element={<Analysis />} />
             <Route path="/photos" element={<Photos />} />
           </Routes>
         </Container>

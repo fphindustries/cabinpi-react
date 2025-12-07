@@ -15,7 +15,7 @@ export function WindDirectionChart({ data, loading = false }: WindDirectionChart
   // Prepare data for polar chart
   // Group by direction (in 22.5 degree increments for 16 compass points)
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
-  const directionData: { direction: string; avgSpeed: number; maxGust: number; count: number }[] = directions.map((dir, index) => ({
+  const directionData: { direction: string; avgSpeed: number; maxGust: number; count: number }[] = directions.map((dir) => ({
     direction: dir,
     avgSpeed: 0,
     maxGust: 0,
