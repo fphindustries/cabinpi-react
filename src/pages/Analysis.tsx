@@ -19,11 +19,12 @@ import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react';
 import ReactECharts from 'echarts-for-react';
 import type { EChartsOption } from 'echarts';
-import { fetchSensorData } from '../lib/api';
+import { fetchSensorData, fetchDailySensorData } from '../lib/api';
 import { formatDateOnly } from '../lib/dateUtils';
 import type { SensorResponse } from '../types/api';
 
 type TimeRangeType = '1h' | '6h' | '24h' | '7d' | 'day';
+type ModeType = 'timeRange' | 'daily';
 
 // Available data fields for selection
 const dataFields = [
@@ -56,14 +57,28 @@ export default function Analysis() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFields, setSelectedFields] = useState<string[]>(['dispavgVbatt', 'watts']);
+  const [rightAxisFields, setRightAxisFields] = useState<string[]>(['watts']);
   const [showTable, setShowTable] = useState(false);
 
+  const mode = (searchParams.get('mode') as ModeType) || 'timeRange';
   const timeRange = (searchParams.get('range') as TimeRangeType) || '24h';
   const selectedDateStr = searchParams.get('date');
+  const startDateStr = searchParams.get('startDate');
+  const endDateStr = searchParams.get('endDate');
 
   // Parse YYYY-MM-DD string into a Date object without timezone conversion
   const selectedDate = selectedDateStr ? (() => {
     const [year, month, day] = selectedDateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  })() : null;
+
+  const startDate = startDateStr ? (() => {
+    const [year, month, day] = startDateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  })() : null;
+
+  const endDate = endDateStr ? (() => {
+    const [year, month, day] = endDateStr.split('-').map(Number);
     return new Date(year, month - 1, day);
   })() : null;
 
@@ -97,34 +112,49 @@ export default function Analysis() {
         let start = new Date();
         let stop = now;
 
-        switch (timeRange) {
-          case '1h':
-            start = new Date(now.getTime() - 60 * 60 * 1000);
-            break;
-          case '6h':
-            start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-            break;
-          case '24h':
-            start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            break;
-          case '7d':
-            start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-          case 'day':
-            if (selectedDate) {
-              // Create date at midnight Pacific time
-              start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0);
-              stop = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
-            } else {
+        if (mode === 'daily') {
+          // Daily mode: use start and end dates
+          if (startDate && endDate) {
+            start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0);
+            stop = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59);
+          } else {
+            // Default to last 30 days
+            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          }
+        } else {
+          // Time Range mode
+          switch (timeRange) {
+            case '1h':
+              start = new Date(now.getTime() - 60 * 60 * 1000);
+              break;
+            case '6h':
+              start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+              break;
+            case '24h':
               start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            }
-            break;
+              break;
+            case '7d':
+              start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              break;
+            case 'day':
+              if (selectedDate) {
+                // Create date at midnight Pacific time
+                start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0);
+                stop = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
+              } else {
+                start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+              }
+              break;
+          }
         }
 
         const startParam = formatAsPacificTime(start);
         const stopParam = formatAsPacificTime(stop);
 
-        const result = await fetchSensorData(startParam, stopParam, 1000);
+        // Use daily endpoint for SQL aggregation, otherwise use regular endpoint
+        const result = mode === 'daily'
+          ? await fetchDailySensorData(startParam, stopParam)
+          : await fetchSensorData(startParam, stopParam, 1000);
         setData(result);
         setError(null);
       } catch (err) {
@@ -135,7 +165,23 @@ export default function Analysis() {
     }
 
     fetchData();
-  }, [timeRange, selectedDateStr]);
+  }, [mode, timeRange, selectedDateStr, startDateStr, endDateStr]);
+
+  const handleModeChange = (value: string | null) => {
+    if (value) {
+      const params = new URLSearchParams(searchParams);
+      params.set('mode', value);
+      // Clear mode-specific params when switching
+      if (value === 'daily') {
+        params.delete('range');
+        params.delete('date');
+      } else {
+        params.delete('startDate');
+        params.delete('endDate');
+      }
+      setSearchParams(params);
+    }
+  };
 
   const handleTimeRangeChange = (value: string | null) => {
     if (value) {
@@ -182,6 +228,40 @@ export default function Analysis() {
     }
   };
 
+  const handleStartDateChange = (value: Date | string | null) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      let date: Date;
+      if (typeof value === 'string') {
+        const [year, month, day] = value.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else {
+        date = value;
+      }
+      params.set('startDate', formatDateOnly(date));
+    } else {
+      params.delete('startDate');
+    }
+    setSearchParams(params);
+  };
+
+  const handleEndDateChange = (value: Date | string | null) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) {
+      let date: Date;
+      if (typeof value === 'string') {
+        const [year, month, day] = value.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else {
+        date = value;
+      }
+      params.set('endDate', formatDateOnly(date));
+    } else {
+      params.delete('endDate');
+    }
+    setSearchParams(params);
+  };
+
   // Prepare chart data
   const validData = useMemo(() => {
     if (!data?.data) return [];
@@ -191,30 +271,45 @@ export default function Analysis() {
   }, [data]);
 
   const chartData = useMemo(() => {
-    return validData.map(d => {
-      const date = new Date(d.date!);
-      return {
-        date: date.toLocaleString('en-US', {
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'America/Los_Angeles'
-        }),
-        ...d,
-      };
-    });
-  }, [validData]);
+    if (mode === 'daily') {
+      // Daily mode: data is already aggregated by SQL, just format the date
+      return validData.map(d => {
+        const date = new Date(d.date!);
+        return {
+          date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
+          ...d,
+        };
+      });
+    } else {
+      // Time Range mode: return raw data with formatted timestamps
+      return validData.map(d => {
+        const date = new Date(d.date!);
+        return {
+          date: date.toLocaleString('en-US', {
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'America/Los_Angeles'
+          }),
+          ...d,
+        };
+      });
+    }
+  }, [validData, mode]);
 
   // Build chart options
   const chartOption: EChartsOption = useMemo(() => {
-    const selectedFieldConfigs = dataFields.filter(f => selectedFields.includes(f.value));
+    // Combine left and right axis fields
+    const allFields = [...new Set([...selectedFields, ...rightAxisFields])];
+    const selectedFieldConfigs = dataFields.filter(f => allFields.includes(f.value));
+    const hasRightAxis = rightAxisFields.length > 0;
 
     return {
       tooltip: {
         trigger: 'axis',
         axisPointer: {
-          type: 'cross',
+          type: mode === 'daily' ? 'shadow' : 'cross',
         },
       },
       legend: {
@@ -223,39 +318,54 @@ export default function Analysis() {
       },
       grid: {
         left: '3%',
-        right: '3%',
+        right: hasRightAxis ? '8%' : '3%',
         bottom: '3%',
         containLabel: true,
       },
       xAxis: {
         type: 'category',
-        boundaryGap: false,
+        boundaryGap: mode === 'daily' ? true : false,
         data: chartData.map(item => item.date),
         axisLabel: {
           rotate: 45,
           fontSize: 10,
         },
       },
-      yAxis: {
+      yAxis: hasRightAxis ? [
+        {
+          type: 'value',
+          name: 'Left Axis',
+          position: 'left',
+        },
+        {
+          type: 'value',
+          name: 'Right Axis',
+          position: 'right',
+        },
+      ] : {
         type: 'value',
       },
-      series: selectedFieldConfigs.map(field => ({
-        name: field.label,
-        type: 'line',
-        smooth: true,
-        data: chartData.map(item => (item as any)[field.value] || null),
-        itemStyle: {
-          color: field.color,
-        },
-        lineStyle: {
-          color: field.color,
-          width: 2,
-        },
-        showSymbol: false,
-        connectNulls: false,
-      })),
+      series: selectedFieldConfigs.map(field => {
+        const isRightAxis = rightAxisFields.includes(field.value);
+        return {
+          name: field.label,
+          type: mode === 'daily' ? 'bar' : 'line',
+          smooth: mode === 'daily' ? undefined : true,
+          yAxisIndex: hasRightAxis && isRightAxis ? 1 : 0,
+          data: chartData.map(item => (item as any)[field.value] || null),
+          itemStyle: {
+            color: field.color,
+          },
+          lineStyle: mode === 'daily' ? undefined : {
+            color: field.color,
+            width: 2,
+          },
+          showSymbol: mode === 'daily' ? undefined : false,
+          connectNulls: mode === 'daily' ? undefined : false,
+        };
+      }),
     };
-  }, [chartData, selectedFields]);
+  }, [chartData, selectedFields, rightAxisFields, mode]);
 
   return (
     <Stack gap="xl" pos="relative">
@@ -266,63 +376,114 @@ export default function Analysis() {
       <Stack gap="md">
         <Title order={2}>Data Analysis</Title>
 
-        <SimpleGrid cols={{ base: 1, sm: timeRange === 'day' ? 2 : 1 }} spacing="md">
-          <Select
-            leftSection={<IconClock size={16} />}
-            label="Time Range"
-            placeholder="Select time range"
-            data={[
-              { value: '1h', label: 'Last Hour' },
-              { value: '6h', label: 'Last 6 Hours' },
-              { value: '24h', label: 'Last 24 Hours' },
-              { value: '7d', label: 'Last 7 Days' },
-              { value: 'day', label: 'Specific Day' },
-            ]}
-            value={timeRange}
-            onChange={handleTimeRangeChange}
-            allowDeselect={false}
-          />
+        <Select
+          label="Mode"
+          placeholder="Select mode"
+          data={[
+            { value: 'timeRange', label: 'Time Range' },
+            { value: 'daily', label: 'Daily Aggregation' },
+          ]}
+          value={mode}
+          onChange={handleModeChange}
+          allowDeselect={false}
+        />
 
-          {timeRange === 'day' && (
+        {mode === 'timeRange' ? (
+          <>
+            <SimpleGrid cols={{ base: 1, sm: timeRange === 'day' ? 2 : 1 }} spacing="md">
+              <Select
+                leftSection={<IconClock size={16} />}
+                label="Time Range"
+                placeholder="Select time range"
+                data={[
+                  { value: '1h', label: 'Last Hour' },
+                  { value: '6h', label: 'Last 6 Hours' },
+                  { value: '24h', label: 'Last 24 Hours' },
+                  { value: '7d', label: 'Last 7 Days' },
+                  { value: 'day', label: 'Specific Day' },
+                ]}
+                value={timeRange}
+                onChange={handleTimeRangeChange}
+                allowDeselect={false}
+              />
+
+              {timeRange === 'day' && (
+                <DatePickerInput
+                  leftSection={<IconCalendar size={16} />}
+                  label="Select a specific day"
+                  placeholder="Pick date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  maxDate={new Date()}
+                  clearable
+                  valueFormat="YYYY-MM-DD"
+                />
+              )}
+            </SimpleGrid>
+
+            {selectedDate && timeRange === 'day' && (
+              <Group justify="center" gap="md">
+                <Button
+                  onClick={goToPreviousDay}
+                  leftSection={<IconChevronLeft size={16} />}
+                  variant="light"
+                >
+                  Previous Day
+                </Button>
+                <Button
+                  onClick={goToNextDay}
+                  rightSection={<IconChevronRight size={16} />}
+                  variant="light"
+                  disabled={selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))}
+                >
+                  Next Day
+                </Button>
+              </Group>
+            )}
+          </>
+        ) : (
+          <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
             <DatePickerInput
               leftSection={<IconCalendar size={16} />}
-              label="Select a specific day"
-              placeholder="Pick date"
-              value={selectedDate}
-              onChange={handleDateChange}
+              label="Start Date"
+              placeholder="Pick start date"
+              value={startDate}
+              onChange={handleStartDateChange}
+              maxDate={endDate || new Date()}
+              clearable
+              valueFormat="YYYY-MM-DD"
+            />
+            <DatePickerInput
+              leftSection={<IconCalendar size={16} />}
+              label="End Date"
+              placeholder="Pick end date"
+              value={endDate}
+              onChange={handleEndDateChange}
+              minDate={startDate || undefined}
               maxDate={new Date()}
               clearable
               valueFormat="YYYY-MM-DD"
             />
-          )}
-        </SimpleGrid>
-
-        {selectedDate && timeRange === 'day' && (
-          <Group justify="center" gap="md">
-            <Button
-              onClick={goToPreviousDay}
-              leftSection={<IconChevronLeft size={16} />}
-              variant="light"
-            >
-              Previous Day
-            </Button>
-            <Button
-              onClick={goToNextDay}
-              rightSection={<IconChevronRight size={16} />}
-              variant="light"
-              disabled={selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))}
-            >
-              Next Day
-            </Button>
-          </Group>
+          </SimpleGrid>
         )}
 
         <MultiSelect
-          label="Select Data Fields"
-          placeholder="Choose fields to visualize"
+          label="Left Y-Axis Data Fields"
+          placeholder="Choose fields for left axis"
           data={dataFields.map(f => ({ value: f.value, label: f.label }))}
           value={selectedFields}
           onChange={setSelectedFields}
+          searchable
+          clearable
+        />
+
+        <MultiSelect
+          label="Right Y-Axis Data Fields (Optional)"
+          placeholder="Choose fields for right axis"
+          description="Fields on the right axis will use a separate scale"
+          data={dataFields.map(f => ({ value: f.value, label: f.label }))}
+          value={rightAxisFields}
+          onChange={setRightAxisFields}
           searchable
           clearable
         />
@@ -338,7 +499,7 @@ export default function Analysis() {
         <LoadingOverlay visible={loading} zIndex={10} overlayProps={{ radius: "sm", blur: 1 }} />
         <Title order={3} mb="md">Custom Chart</Title>
         <div style={{ height: 500 }}>
-          {chartData.length > 0 && selectedFields.length > 0 ? (
+          {chartData.length > 0 && (selectedFields.length > 0 || rightAxisFields.length > 0) ? (
             <ReactECharts
               option={chartOption}
               style={{ height: '500px', width: '100%' }}
@@ -348,7 +509,7 @@ export default function Analysis() {
           ) : (
             <Stack align="center" justify="center" h={500}>
               <Text c="dimmed">
-                {selectedFields.length === 0
+                {selectedFields.length === 0 && rightAxisFields.length === 0
                   ? 'Please select at least one data field to visualize'
                   : 'No data available for selected time range'}
               </Text>
@@ -366,7 +527,7 @@ export default function Analysis() {
                 <Table.Tr>
                   <Table.Th>Date/Time</Table.Th>
                   {dataFields
-                    .filter(f => selectedFields.includes(f.value))
+                    .filter(f => selectedFields.includes(f.value) || rightAxisFields.includes(f.value))
                     .map(field => (
                       <Table.Th key={field.value}>{field.label}</Table.Th>
                     ))}
@@ -377,7 +538,7 @@ export default function Analysis() {
                   <Table.Tr key={index}>
                     <Table.Td>{row.date}</Table.Td>
                     {dataFields
-                      .filter(f => selectedFields.includes(f.value))
+                      .filter(f => selectedFields.includes(f.value) || rightAxisFields.includes(f.value))
                       .map(field => (
                         <Table.Td key={field.value}>
                           {(row as any)[field.value]?.toFixed(2) ?? '-'}

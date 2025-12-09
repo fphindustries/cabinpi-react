@@ -28,6 +28,21 @@ export async function fetchSensorData(
   return response.json();
 }
 
+export async function fetchDailySensorData(
+  start: string,
+  stop: string
+): Promise<SensorResponse> {
+  const url = `${API_BASE}/sensors/daily?start=${start}&stop=${stop}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch daily sensor data: ${response.status}`);
+  }
+
+  return response.json();
+}
+
 export async function fetchPhotos(date?: string): Promise<PhotoResponse> {
   const url = date ? `${API_BASE}/photos?date=${date}` : `${API_BASE}/photos`;
 

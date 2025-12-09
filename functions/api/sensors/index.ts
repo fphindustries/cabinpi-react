@@ -20,10 +20,10 @@ export async function onRequest(context: { request: Request; env: Env }) {
   }
 
   // Validate limit
-  if (isNaN(limit) || limit < 1 || limit > 1000) {
+  if (isNaN(limit) || limit < 1 || limit > 10000) {
     return new Response(JSON.stringify({
       success: false,
-      error: 'Invalid limit parameter (must be 1-1000)'
+      error: 'Invalid limit parameter (must be 1-10000)'
     }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
