@@ -32,6 +32,14 @@ export interface SensorData {
   windAvg?: number;
   windDirection?: number;
   windGust?: number;
+  // DC Power Monitor fields (INA228)
+  dcBusVoltage?: number;
+  dcCurrent?: number;
+  dcPower?: number;
+  dcShuntVoltage?: number;
+  // Basement temperature fields (DS18B20)
+  basementF?: number;
+  basementC?: number;
 }
 
 export interface LatestSensorResponse {

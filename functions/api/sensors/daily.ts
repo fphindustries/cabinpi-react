@@ -55,7 +55,13 @@ export async function onRequest(context: { request: Request; env: Env }) {
         MAX(watts) as watts,
         MAX(windAvg) as windAvg,
         MAX(windDirection) as windDirection,
-        MAX(windGust) as windGust
+        MAX(windGust) as windGust,
+        MAX(dcBusVoltage) as dcBusVoltage,
+        MAX(dcCurrent) as dcCurrent,
+        MAX(dcPower) as dcPower,
+        MAX(dcShuntVoltage) as dcShuntVoltage,
+        MAX(basementF) as basementF,
+        MAX(basementC) as basementC
       FROM measurements
       WHERE date >= ?1 AND date <= ?2
       GROUP BY DATE(date)

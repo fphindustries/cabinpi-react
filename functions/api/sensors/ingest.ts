@@ -38,6 +38,14 @@ interface SensorRecord {
   windAvg?: number;
   windDirection?: number;
   windGust?: number;
+  // DC Power Monitor fields (INA228)
+  dcBusVoltage?: number;
+  dcCurrent?: number;
+  dcPower?: number;
+  dcShuntVoltage?: number;
+  // Basement temperature fields (DS18B20)
+  basementF?: number;
+  basementC?: number;
 }
 
 interface IngestRequest {
@@ -86,11 +94,12 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
           ibattDisplay, illuminance, inHg, intF, inverterAacOut, inverterFault,
           inverterMode, inverterOn, inverterVacOut, kwhours, niteMinutesNoPwr,
           pvInputCurrent, rain, solarRadiation, strikeCount, uv, vocLastMeasured,
-          watts, windAvg, windDirection, windGust
+          watts, windAvg, windDirection, windGust, dcBusVoltage, dcCurrent, dcPower,
+          dcShuntVoltage, basementF, basementC
         ) VALUES (
           ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
           ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30,
-          ?31, ?32, ?33
+          ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39
         )
       `).bind(
         record.date,
@@ -125,7 +134,13 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         record.watts ?? null,
         record.windAvg ?? null,
         record.windDirection ?? null,
-        record.windGust ?? null
+        record.windGust ?? null,
+        record.dcBusVoltage ?? null,
+        record.dcCurrent ?? null,
+        record.dcPower ?? null,
+        record.dcShuntVoltage ?? null,
+        record.basementF ?? null,
+        record.basementC ?? null
       ).run();
 
       insertedCount.count++;
