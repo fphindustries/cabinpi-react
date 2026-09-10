@@ -4,6 +4,7 @@ import { WeatherCard } from '../components/WeatherCard';
 import { InsideClimateCard } from '../components/InsideClimateCard';
 import { SolarPowerCard } from '../components/SolarPowerCard';
 import { InverterCard } from '../components/InverterCard';
+import { DCPowerCard } from '../components/DCPowerCard';
 import { getLatestSensorData } from '../lib/api';
 import type { LatestSensorResponse } from '../types/api';
 
@@ -56,6 +57,7 @@ export default function Home() {
           <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
             <SolarPowerCard data={data?.data} />
             <InverterCard data={data?.data} />
+            <DCPowerCard data={data?.data} />
             <WeatherCard data={data?.data} />
             <InsideClimateCard data={data?.data} />
           </SimpleGrid>

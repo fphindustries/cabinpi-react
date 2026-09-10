@@ -49,6 +49,10 @@ const dataFields = [
   { value: 'dailyAccumulation', label: 'Daily Rain (in)', color: '#1971c2' },
   { value: 'ampHours', label: 'Amp Hours (Ah)', color: '#845ef7' },
   { value: 'kwhours', label: 'Kilowatt Hours (kWh)', color: '#7950f2' },
+  { value: 'basementF', label: 'Basement Temperature (°F)', color: '#f06595' },
+  { value: 'dcBusVoltage', label: 'DC Bus Voltage (V)', color: '#12b886' },
+  { value: 'dcCurrent', label: 'DC Current (A)', color: '#20c997' },
+  { value: 'dcPower', label: 'DC Power (W)', color: '#38d9a9' },
 ];
 
 export default function Analysis() {

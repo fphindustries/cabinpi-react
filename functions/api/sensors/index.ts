@@ -41,7 +41,8 @@ export async function onRequest(context: { request: Request; env: Env }) {
         ibattDisplay, illuminance, inHg, intF, inverterAacOut, inverterFault,
         inverterMode, inverterOn, inverterVacOut, kwhours, niteMinutesNoPwr,
         pvInputCurrent, rain, solarRadiation, strikeCount, uv, vocLastMeasured,
-        watts, windAvg, windDirection, windGust
+        watts, windAvg, windDirection, windGust, dcBusVoltage, dcCurrent, dcPower,
+        dcShuntVoltage, basementF, basementC
       FROM measurements
       WHERE date >= ?1 AND date <= ?2
       ORDER BY date DESC

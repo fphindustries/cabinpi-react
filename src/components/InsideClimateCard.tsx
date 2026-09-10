@@ -39,6 +39,14 @@ export function InsideClimateCard({ data }: InsideClimateCardProps) {
               <Text size="sm" c="dimmed">%</Text>
             </Group>
           </Stack>
+          <Stack gap="xs">
+            <Text size="sm" c="dimmed">Basement Temperature</Text>
+            <Group gap="xs" align="baseline">
+              <Text size="xl" fw={700}>{data?.basementF?.toFixed(1) || '—'}</Text>
+              <Text size="sm" c="dimmed">°F</Text>
+            </Group>
+          </Stack>
+
         </Group>
 
         {data?.humidity !== undefined && (
