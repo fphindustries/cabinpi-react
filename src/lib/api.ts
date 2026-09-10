@@ -1,72 +1,24 @@
-import type { LatestSensorResponse, SensorResponse, PhotoResponse, UserResponse } from '../types/api';
+import type { PhotoResponse } from '../types/api';
 
-const API_BASE = '/api';
-
-export async function getLatestSensorData(): Promise<LatestSensorResponse> {
-  const response = await fetch(`${API_BASE}/sensors/latest`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch sensor data: ${response.status}`);
+export async function apiRequest<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(path, { signal, headers: { Accept: 'application/json' } });
+  if (!response.headers.get('Content-Type')?.includes('application/json')) {
+    throw new Error('Your session may have expired. Reload the page to sign in.');
   }
-
-  return response.json();
+  const body = await response.json();
+  if (!response.ok || body.success === false) {
+    throw new Error(body.error || `Request failed (${response.status})`);
+  }
+  return body as T;
 }
 
-export async function fetchSensorData(
-  start: string,
-  stop: string,
-  limit = 1000
-): Promise<SensorResponse> {
-  const url = `${API_BASE}/sensors?start=${start}&stop=${stop}&limit=${limit}`;
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch sensor data: ${response.status}`);
-  }
-
-  return response.json();
+export function photosPath(date?: string | null, cursor?: string | null): string {
+  const params = new URLSearchParams();
+  if (date) params.set('date', date);
+  if (cursor) params.set('cursor', cursor);
+  return `/api/photos?${params}`;
 }
 
-export async function fetchDailySensorData(
-  start: string,
-  stop: string
-): Promise<SensorResponse> {
-  const url = `${API_BASE}/sensors/daily?start=${start}&stop=${stop}`;
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch daily sensor data: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export async function fetchPhotos(date?: string): Promise<PhotoResponse> {
-  const url = date ? `${API_BASE}/photos?date=${date}` : `${API_BASE}/photos`;
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch photos: ${response.status}`);
-  }
-
-  return response.json();
-}
-
-export function getPhotoUrl(filename: string, size?: number): string {
-  return size
-    ? `${API_BASE}/photos/${filename}?size=${size}`
-    : `${API_BASE}/photos/${filename}`;
-}
-
-export async function getCurrentUser(): Promise<UserResponse> {
-  const response = await fetch(`${API_BASE}/user`);
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch user: ${response.status}`);
-  }
-
-  return response.json();
+export function fetchPhotos(date: string, cursor: string, signal: AbortSignal): Promise<PhotoResponse> {
+  return apiRequest(photosPath(date, cursor), signal);
 }

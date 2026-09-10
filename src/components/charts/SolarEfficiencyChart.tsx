@@ -11,9 +11,9 @@ interface SolarEfficiencyChartProps {
 export function SolarEfficiencyChart({ data, loading = false }: SolarEfficiencyChartProps) {
   const chartData = data.map(d => ({
     date: formatChartDate(d.date!),
-    solarRadiation: d.solarRadiation || null,
-    pvWatts: d.watts || null,
-    illuminance: d.illuminance || null,
+    solarRadiation: d.solarRadiation ?? null,
+    pvWatts: d.watts ?? null,
+    illuminance: d.illuminance ?? null,
   }));
 
   return (
@@ -32,9 +32,9 @@ export function SolarEfficiencyChart({ data, loading = false }: SolarEfficiencyC
               { name: 'illuminance', label: 'Illuminance (lux)', color: '#339af0', yAxisId: 'right' },
             ]}
             yAxisLabel="Watts"
-            yAxisDomain={[0, 'auto']}
+            yAxisDomain={[0, 'dataMax']}
             rightYAxisLabel="lux"
-            rightYAxisDomain={[0, 'auto']}
+            rightYAxisDomain={[0, 'dataMax']}
           />
         ) : (
           <Stack align="center" justify="center" h={300}>

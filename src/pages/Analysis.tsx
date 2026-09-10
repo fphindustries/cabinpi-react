@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Stack,
@@ -17,14 +17,12 @@ import {
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconCalendar, IconChevronLeft, IconChevronRight, IconClock } from '@tabler/icons-react';
-import ReactECharts from 'echarts-for-react';
+import { EChart } from '../components/EChart';
 import type { EChartsOption } from 'echarts';
-import { fetchSensorData, fetchDailySensorData } from '../lib/api';
-import { formatDateOnly } from '../lib/dateUtils';
-import type { SensorResponse } from '../types/api';
+import { useApi } from '../hooks/useApi';
+import { formatChartDate, dailyRange, dateParam, timeRangeParam, sensorRange, pacificToday, shiftDay } from '../lib/dateUtils';
+import type { SensorResponse, SensorData } from '../types/api';
 
-type TimeRangeType = '1h' | '6h' | '24h' | '7d' | 'day';
-type ModeType = 'timeRange' | 'daily';
 
 // Available data fields for selection
 const dataFields = [
@@ -53,123 +51,33 @@ const dataFields = [
   { value: 'dcBusVoltage', label: 'DC Bus Voltage (V)', color: '#12b886' },
   { value: 'dcCurrent', label: 'DC Current (A)', color: '#20c997' },
   { value: 'dcPower', label: 'DC Power (W)', color: '#38d9a9' },
-];
+] satisfies { value: keyof Omit<SensorData, 'date' | 'inverterOn'>; label: string; color: string }[];
 
 export default function Analysis() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [data, setData] = useState<SensorResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFields, setSelectedFields] = useState<string[]>(['dispavgVbatt', 'watts']);
-  const [rightAxisFields, setRightAxisFields] = useState<string[]>(['watts']);
-  const [showTable, setShowTable] = useState(false);
-
-  const mode = (searchParams.get('mode') as ModeType) || 'timeRange';
-  const timeRange = (searchParams.get('range') as TimeRangeType) || '24h';
-  const selectedDateStr = searchParams.get('date');
-  const startDateStr = searchParams.get('startDate');
-  const endDateStr = searchParams.get('endDate');
-
-  // Parse YYYY-MM-DD string into a Date object without timezone conversion
-  const selectedDate = selectedDateStr ? (() => {
-    const [year, month, day] = selectedDateStr.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  })() : null;
-
-  const startDate = startDateStr ? (() => {
-    const [year, month, day] = startDateStr.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  })() : null;
-
-  const endDate = endDateStr ? (() => {
-    const [year, month, day] = endDateStr.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  })() : null;
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-
-        // Helper to format date as Pacific time string in ISO format
-        const formatAsPacificTime = (date: Date): string => {
-          // Convert to Pacific time using toLocaleString
-          const pacificStr = date.toLocaleString('en-US', {
-            timeZone: 'America/Los_Angeles',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          });
-
-          // Parse the result and format as "YYYY-MM-DDTHH:MM:SS" (ISO format)
-          // toLocaleString returns "MM/DD/YYYY, HH:MM:SS"
-          const [datePart, timePart] = pacificStr.split(', ');
-          const [month, day, year] = datePart.split('/');
-          return `${year}-${month}-${day}T${timePart}`;
-        };
-
-        const now = new Date();
-        let start = new Date();
-        let stop = now;
-
-        if (mode === 'daily') {
-          // Daily mode: use start and end dates
-          if (startDate && endDate) {
-            start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 0, 0, 0);
-            stop = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59);
-          } else {
-            // Default to last 30 days
-            start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          }
-        } else {
-          // Time Range mode
-          switch (timeRange) {
-            case '1h':
-              start = new Date(now.getTime() - 60 * 60 * 1000);
-              break;
-            case '6h':
-              start = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-              break;
-            case '24h':
-              start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              break;
-            case '7d':
-              start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-              break;
-            case 'day':
-              if (selectedDate) {
-                // Create date at midnight Pacific time
-                start = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0);
-                stop = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59);
-              } else {
-                start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-              }
-              break;
-          }
-        }
-
-        const startParam = formatAsPacificTime(start);
-        const stopParam = formatAsPacificTime(stop);
-
-        // Use daily endpoint for SQL aggregation, otherwise use regular endpoint
-        const result = mode === 'daily'
-          ? await fetchDailySensorData(startParam, stopParam)
-          : await fetchSensorData(startParam, stopParam, 1000);
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
+  const timeRange = timeRangeParam(searchParams.get('range'));
+  const selectedDateStr = dateParam(searchParams.get('date'));
+  const selectedDate = selectedDateStr;
+  const mode = searchParams.get('mode') === 'daily' ? 'daily' : 'timeRange';
+  const startDateStr = dateParam(searchParams.get('startDate'));
+  const endDateStr = dateParam(searchParams.get('endDate'));
+  const startDate = startDateStr;
+  const endDate = endDateStr;
+  const readFields = (param: string, fallback: string[]) => searchParams.has(param)
+    ? searchParams.get(param)!.split(',').filter(value => dataFields.some(field => field.value === value)) : fallback;
+  const selectedFields = readFields('left', ['dispavgVbatt']);
+  const rightAxisFields = readFields('right', ['watts']);
+  const showTable = searchParams.get('table') === '1';
+  const setParam = (name: string, value: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set(name, value);
+    setSearchParams(params);
+  };
+  const path = useMemo(() => {
+    const [start, stop] = mode === 'daily' ? dailyRange(startDateStr, endDateStr) : sensorRange(timeRange, selectedDateStr);
+    return '/api/sensors' + (mode === 'daily' ? '/daily?' : '?') + new URLSearchParams({ start, stop, limit: '10000' });
   }, [mode, timeRange, selectedDateStr, startDateStr, endDateStr]);
+  const { data, loading, error } = useApi<SensorResponse>(path);
 
   const handleModeChange = (value: string | null) => {
     if (value) {
@@ -191,116 +99,34 @@ export default function Analysis() {
     if (value) {
       const params = new URLSearchParams(searchParams);
       params.set('range', value);
-      if (value !== 'day') {
-        params.delete('date');
-      }
+      if (value !== 'day') params.delete('date');
+      else if (!selectedDate) params.set('date', pacificToday());
       setSearchParams(params);
     }
   };
 
-  const handleDateChange = (value: Date | string | null) => {
+  const setDateParam = (name: string, value: string | null) => {
     const params = new URLSearchParams(searchParams);
-    if (value) {
-      let date: Date;
-      if (typeof value === 'string') {
-        // Parse string as YYYY-MM-DD in local timezone
-        const [year, month, day] = value.split('-').map(Number);
-        date = new Date(year, month - 1, day);
-      } else {
-        date = value;
-      }
-      params.set('date', formatDateOnly(date));
-    } else {
-      params.delete('date');
-    }
+    if (value) params.set(name, value); else params.delete(name);
     setSearchParams(params);
   };
-
-  const goToPreviousDay = () => {
-    if (selectedDate) {
-      const prevDay = new Date(selectedDate);
-      prevDay.setDate(prevDay.getDate() - 1);
-      handleDateChange(prevDay);
-    }
-  };
-
-  const goToNextDay = () => {
-    if (selectedDate) {
-      const nextDay = new Date(selectedDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      handleDateChange(nextDay);
-    }
-  };
-
-  const handleStartDateChange = (value: Date | string | null) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      let date: Date;
-      if (typeof value === 'string') {
-        const [year, month, day] = value.split('-').map(Number);
-        date = new Date(year, month - 1, day);
-      } else {
-        date = value;
-      }
-      params.set('startDate', formatDateOnly(date));
-    } else {
-      params.delete('startDate');
-    }
-    setSearchParams(params);
-  };
-
-  const handleEndDateChange = (value: Date | string | null) => {
-    const params = new URLSearchParams(searchParams);
-    if (value) {
-      let date: Date;
-      if (typeof value === 'string') {
-        const [year, month, day] = value.split('-').map(Number);
-        date = new Date(year, month - 1, day);
-      } else {
-        date = value;
-      }
-      params.set('endDate', formatDateOnly(date));
-    } else {
-      params.delete('endDate');
-    }
-    setSearchParams(params);
-  };
+  const handleDateChange = (value: string | null) => setDateParam('date', value);
+  const handleStartDateChange = (value: string | null) => setDateParam('startDate', value);
+  const handleEndDateChange = (value: string | null) => setDateParam('endDate', value);
+  const goToPreviousDay = () => selectedDate && handleDateChange(shiftDay(selectedDate, -1));
+  const goToNextDay = () => selectedDate && selectedDate < pacificToday() && handleDateChange(shiftDay(selectedDate, 1));
 
   // Prepare chart data
   const validData = useMemo(() => {
     if (!data?.data) return [];
     return data.data.filter(d => d.date).sort((a, b) => {
-      return new Date(a.date!).getTime() - new Date(b.date!).getTime();
+      return a.date!.localeCompare(b.date!);
     });
   }, [data]);
 
-  const chartData = useMemo(() => {
-    if (mode === 'daily') {
-      // Daily mode: data is already aggregated by SQL, just format the date
-      return validData.map(d => {
-        const date = new Date(d.date!);
-        return {
-          date: `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`,
-          ...d,
-        };
-      });
-    } else {
-      // Time Range mode: return raw data with formatted timestamps
-      return validData.map(d => {
-        const date = new Date(d.date!);
-        return {
-          date: date.toLocaleString('en-US', {
-            month: 'numeric',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'America/Los_Angeles'
-          }),
-          ...d,
-        };
-      });
-    }
-  }, [validData, mode]);
+  const chartData = useMemo(() => validData.map(row => ({
+    ...row, date: formatChartDate(row.date!),
+  })), [validData]);
 
   // Build chart options
   const chartOption: EChartsOption = useMemo(() => {
@@ -354,9 +180,9 @@ export default function Analysis() {
         return {
           name: field.label,
           type: mode === 'daily' ? 'bar' : 'line',
-          smooth: mode === 'daily' ? undefined : true,
+          smooth: false,
           yAxisIndex: hasRightAxis && isRightAxis ? 1 : 0,
-          data: chartData.map(item => (item as any)[field.value] || null),
+          data: chartData.map(item => item[field.value] ?? null),
           itemStyle: {
             color: field.color,
           },
@@ -373,6 +199,7 @@ export default function Analysis() {
 
   return (
     <Stack gap="xl" pos="relative">
+      {data?.truncated && <Text c="orange">Showing the newest 10,000 readings. Choose a shorter range for all readings.</Text>}
       {error && (
         <Text c="red" ta="center" py="xl">{error}</Text>
       )}
@@ -385,7 +212,7 @@ export default function Analysis() {
           placeholder="Select mode"
           data={[
             { value: 'timeRange', label: 'Time Range' },
-            { value: 'daily', label: 'Daily Aggregation' },
+            { value: 'daily', label: 'Daily Maximums' },
           ]}
           value={mode}
           onChange={handleModeChange}
@@ -418,7 +245,7 @@ export default function Analysis() {
                   placeholder="Pick date"
                   value={selectedDate}
                   onChange={handleDateChange}
-                  maxDate={new Date()}
+                  maxDate={pacificToday()}
                   clearable
                   valueFormat="YYYY-MM-DD"
                 />
@@ -438,7 +265,7 @@ export default function Analysis() {
                   onClick={goToNextDay}
                   rightSection={<IconChevronRight size={16} />}
                   variant="light"
-                  disabled={selectedDate >= new Date(new Date().setHours(0, 0, 0, 0))}
+                  disabled={selectedDate >= pacificToday()}
                 >
                   Next Day
                 </Button>
@@ -453,7 +280,7 @@ export default function Analysis() {
               placeholder="Pick start date"
               value={startDate}
               onChange={handleStartDateChange}
-              maxDate={endDate || new Date()}
+              maxDate={endDate || pacificToday()}
               clearable
               valueFormat="YYYY-MM-DD"
             />
@@ -464,7 +291,7 @@ export default function Analysis() {
               value={endDate}
               onChange={handleEndDateChange}
               minDate={startDate || undefined}
-              maxDate={new Date()}
+              maxDate={pacificToday()}
               clearable
               valueFormat="YYYY-MM-DD"
             />
@@ -476,7 +303,7 @@ export default function Analysis() {
           placeholder="Choose fields for left axis"
           data={dataFields.map(f => ({ value: f.value, label: f.label }))}
           value={selectedFields}
-          onChange={setSelectedFields}
+          onChange={values => setParam('left', values.join(','))}
           searchable
           clearable
         />
@@ -487,7 +314,7 @@ export default function Analysis() {
           description="Fields on the right axis will use a separate scale"
           data={dataFields.map(f => ({ value: f.value, label: f.label }))}
           value={rightAxisFields}
-          onChange={setRightAxisFields}
+          onChange={values => setParam('right', values.join(','))}
           searchable
           clearable
         />
@@ -495,7 +322,7 @@ export default function Analysis() {
         <Checkbox
           label="Show data table"
           checked={showTable}
-          onChange={(event) => setShowTable(event.currentTarget.checked)}
+          onChange={(event) => setParam('table', event.currentTarget.checked ? '1' : '0')}
         />
       </Stack>
 
@@ -504,11 +331,9 @@ export default function Analysis() {
         <Title order={3} mb="md">Custom Chart</Title>
         <div style={{ height: 500 }}>
           {chartData.length > 0 && (selectedFields.length > 0 || rightAxisFields.length > 0) ? (
-            <ReactECharts
+            <EChart
               option={chartOption}
-              style={{ height: '500px', width: '100%' }}
-              opts={{ renderer: 'canvas' }}
-              notMerge={true}
+              height={500}
             />
           ) : (
             <Stack align="center" justify="center" h={500}>
@@ -545,7 +370,7 @@ export default function Analysis() {
                       .filter(f => selectedFields.includes(f.value) || rightAxisFields.includes(f.value))
                       .map(field => (
                         <Table.Td key={field.value}>
-                          {(row as any)[field.value]?.toFixed(2) ?? '-'}
+                          {row[field.value]?.toFixed(2) ?? '-'}
                         </Table.Td>
                       ))}
                   </Table.Tr>

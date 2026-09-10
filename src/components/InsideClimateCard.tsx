@@ -8,7 +8,7 @@ interface InsideClimateCardProps {
 
 export function InsideClimateCard({ data }: InsideClimateCardProps) {
   const getHumidityColor = (humidity?: number) => {
-    if (!humidity) return 'gray'
+    if (humidity == null) return 'gray'
     if (humidity < 30) return 'orange'
     if (humidity > 60) return 'blue'
     return 'green'
@@ -49,7 +49,7 @@ export function InsideClimateCard({ data }: InsideClimateCardProps) {
 
         </Group>
 
-        {data?.humidity !== undefined && (
+        {data?.humidity != null && (
           <Stack gap="xs">
             <Text size="xs" c="dimmed">Humidity Level</Text>
             <Progress
@@ -63,7 +63,7 @@ export function InsideClimateCard({ data }: InsideClimateCardProps) {
 
 
 
-        {data?.inHg !== undefined && (
+        {data?.inHg != null && (
           <Stack gap="xs">
             <Text size="sm" c="dimmed">Barometric Pressure</Text>
             <Group gap="xs" align="baseline">

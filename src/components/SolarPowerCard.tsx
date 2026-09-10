@@ -7,7 +7,7 @@ interface SolarPowerCardProps {
 }
 
 export function SolarPowerCard({ data }: SolarPowerCardProps) {
-  const getBatteryStateLabel = (state?: number) => {
+  const getBatteryStateLabel = (state?: number | null) => {
     switch (state) {
       case 0: return 'Resting'
       case 3: return 'Absorb'
@@ -17,12 +17,12 @@ export function SolarPowerCard({ data }: SolarPowerCardProps) {
       case 7: return 'Equalize'
       case 10: return 'Hyper VOC'
       case 11: return 'EQ MPPT'
-      default: return state !== undefined ? `Unknown (0x${state.toString(16).toUpperCase()})` : 'Unknown'
+      default: return state != null ? `Unknown (0x${state.toString(16).toUpperCase()})` : 'Unknown'
     }
   }
 
-  const getBatteryIcon = (state?: number) => {
-    if (state === undefined || state === 0) {
+  const getBatteryIcon = (state?: number | null) => {
+    if (state == null || state === 0) {
       return <IconBattery size={20} />
     } else if (state > 0 && state < 5) {
       return <IconBatteryCharging size={20} />
@@ -39,7 +39,7 @@ export function SolarPowerCard({ data }: SolarPowerCardProps) {
             <IconSun size={24} />
             <Title order={3}>Solar Power</Title>
           </Group>
-          {data?.batteryState !== undefined && (
+          {data?.batteryState != null && (
             <Badge color="blue">{getBatteryStateLabel(data.batteryState)}</Badge>
           )}
         </Group>

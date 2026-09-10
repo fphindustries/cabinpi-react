@@ -1,5 +1,5 @@
 import { Card, Title, Stack, Text, LoadingOverlay } from '@mantine/core';
-import ReactECharts from 'echarts-for-react';
+import { EChart } from '../EChart';
 import type { EChartsOption } from 'echarts';
 import type { SensorData } from '../../types/api';
 
@@ -28,7 +28,7 @@ export function WindDirectionChart({ data, loading = false }: WindDirectionChart
 
     // Convert degrees to direction index (0-15)
     // Each direction covers 22.5 degrees
-    const dirIndex = Math.round(d.windDirection / 22.5) % 16;
+    const dirIndex = ((Math.round(d.windDirection / 22.5) % 16) + 16) % 16;
 
     directionData[dirIndex].count++;
     directionData[dirIndex].avgSpeed += d.windAvg || 0;
@@ -47,12 +47,12 @@ export function WindDirectionChart({ data, loading = false }: WindDirectionChart
   const option: EChartsOption = {
     tooltip: {
       trigger: 'axis',
-      formatter: (params: any) => {
+      formatter: (params) => {
         if (!Array.isArray(params) || params.length === 0) return '';
 
         const direction = params[0].name;
-        const avgSpeed = params[0]?.value?.toFixed(1) || '0.0';
-        const maxGust = params[1]?.value?.toFixed(1) || '0.0';
+        const avgSpeed = (typeof params[0]?.value === 'number' ? params[0].value.toFixed(1) : undefined) || '0.0';
+        const maxGust = (typeof params[1]?.value === 'number' ? params[1].value.toFixed(1) : undefined) || '0.0';
 
         return `${direction}<br/>Avg Speed: ${avgSpeed} mph<br/>Max Gust: ${maxGust} mph`;
       },
@@ -114,10 +114,9 @@ export function WindDirectionChart({ data, loading = false }: WindDirectionChart
       <Title order={3} mb="md">Wind Direction & Intensity</Title>
       <div style={{ height: 300 }}>
         {windData.length > 0 ? (
-          <ReactECharts
+          <EChart
             option={option}
-            style={{ height: '300px', width: '100%' }}
-            opts={{ renderer: 'canvas' }}
+            height={300}
           />
         ) : (
           <Stack align="center" justify="center" h={300}>

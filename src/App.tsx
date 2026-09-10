@@ -1,36 +1,25 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
-import { MantineProvider, AppShell, Group, Title, Burger, NavLink, Container, Avatar, Text, Menu } from '@mantine/core';
+import { MantineProvider, AppShell, Group, Title, Burger, NavLink, Container, Avatar, Text, Menu, Loader, Center, UnstyledButton } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { IconHome, IconChartLine, IconPhoto, IconUser, IconChartBar } from '@tabler/icons-react';
-import { useState, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import Home from './pages/Home';
-import Charts from './pages/Charts';
-import Photos from './pages/Photos';
-import Analysis from './pages/Analysis';
 import { CabinPiLogo } from './components/CabinPiLogo';
-import { getCurrentUser } from './lib/api';
-import type { User } from './types/api';
+import { useApi } from './hooks/useApi';
+import type { UserResponse } from './types/api';
+import { ErrorBoundary } from './components/ErrorBoundary';
+
+const Charts = lazy(() => import('./pages/Charts'));
+const Photos = lazy(() => import('./pages/Photos'));
+const Analysis = lazy(() => import('./pages/Analysis'));
 
 function Navigation() {
   const location = useLocation();
   const [opened, { toggle, close }] = useDisclosure();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const response = await getCurrentUser();
-        if (response.authenticated && response.user) {
-          setUser(response.user);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-      }
-    }
-    fetchUser();
-  }, []);
+  const { data } = useApi<UserResponse>('/api/user');
+  const user = data?.user;
 
   return (
     <AppShell
@@ -45,19 +34,19 @@ function Navigation() {
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
           <Group>
-            <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
+            <Burger aria-label="Toggle navigation" opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
             <CabinPiLogo size={28} />
             <Title order={2}>CabinPi</Title>
           </Group>
           {user && (
             <Menu shadow="md" width={200}>
               <Menu.Target>
-                <Group gap="xs" style={{ cursor: 'pointer' }}>
+                <UnstyledButton aria-label="Your account"><Group gap="xs">
                   <Avatar color="blue" radius="xl" size="sm">
                     <IconUser size={18} />
                   </Avatar>
                   <Text size="sm" fw={500} visibleFrom="sm">{user.name}</Text>
-                </Group>
+                </Group></UnstyledButton>
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Label>Account</Menu.Label>
@@ -107,12 +96,17 @@ function Navigation() {
 
       <AppShell.Main>
         <Container fluid>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/analysis" element={<Analysis />} />
-            <Route path="/photos" element={<Photos />} />
-          </Routes>
+          <ErrorBoundary key={location.pathname}>
+            <Suspense fallback={<Center p="xl"><Loader aria-label="Loading page" /></Center>}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/charts" element={<Charts />} />
+                <Route path="/analysis" element={<Analysis />} />
+                <Route path="/photos" element={<Photos />} />
+                <Route path="*" element={<Text>Page not found. <Link to="/">Return to dashboard</Link></Text>} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
         </Container>
       </AppShell.Main>
     </AppShell>

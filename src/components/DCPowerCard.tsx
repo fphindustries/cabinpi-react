@@ -43,7 +43,7 @@ export function DCPowerCard({ data }: DCPowerCardProps) {
             </Group>
           </Stack>
 
-          {data?.dcShuntVoltage !== undefined && (
+          {data?.dcShuntVoltage != null && (
             <Stack gap="xs">
               <Text size="sm" c="dimmed">Shunt Voltage</Text>
               <Group gap="xs" align="baseline">

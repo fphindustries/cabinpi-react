@@ -11,9 +11,9 @@ interface PowerSystemChartProps {
 export function PowerSystemChart({ data, loading = false }: PowerSystemChartProps) {
   const chartData = data.map(d => ({
     date: formatChartDate(d.date!),
-    batteryVoltage: d.dispavgVbatt || null,
-    inverterCurrent: d.inverterAacOut || null,
-    solarPower: d.watts || null,
+    batteryVoltage: d.dispavgVbatt ?? null,
+    inverterCurrent: d.inverterAacOut ?? null,
+    solarPower: d.watts ?? null,
   }));
 
   // Build markArea data for when inverter is on

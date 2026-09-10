@@ -11,8 +11,8 @@ interface TemperatureChartProps {
 export function TemperatureChart({ data, loading = false }: TemperatureChartProps) {
   const chartData = data.map(d => ({
     date: formatChartDate(d.date!),
-    inside: d.intF || null,
-    outside: d.extF || null,
+    inside: d.intF ?? null,
+    outside: d.extF ?? null,
   }));
 
   return (

@@ -11,8 +11,8 @@ interface WindSpeedChartProps {
 export function WindSpeedChart({ data, loading = false }: WindSpeedChartProps) {
   const chartData = data.map(d => ({
     date: formatChartDate(d.date!),
-    avgSpeed: d.windAvg || null,
-    gust: d.windGust || null,
+    avgSpeed: d.windAvg ?? null,
+    gust: d.windGust ?? null,
   }));
 
   return (
@@ -30,7 +30,7 @@ export function WindSpeedChart({ data, loading = false }: WindSpeedChartProps) {
               { name: 'gust', label: 'Wind Gust', color: '#cc5de8' },
             ]}
             yAxisLabel="mph"
-            yAxisDomain={[0, 'auto']}
+            yAxisDomain={[0, 'dataMax']}
           />
         ) : (
           <Stack align="center" justify="center" h={300}>

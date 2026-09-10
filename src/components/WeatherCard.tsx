@@ -7,14 +7,14 @@ interface WeatherCardProps {
 }
 
 export function WeatherCard({ data }: WeatherCardProps) {
-  const getWindDirection = (degrees?: number) => {
-    if (degrees === undefined) return '—'
+  const getWindDirection = (degrees?: number | null) => {
+    if (degrees == null) return '—'
     const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW']
-    const index = Math.round(degrees / 22.5) % 16
+    const index = ((Math.round(degrees / 22.5) % 16) + 16) % 16
     return directions[index]
   }
 
-  const getUVLevel = (uv?: number) => {
+  const getUVLevel = (uv?: number | null) => {
     if (!uv) return { level: 'Low', color: 'green' }
     if (uv < 3) return { level: 'Low', color: 'green' }
     if (uv < 6) return { level: 'Moderate', color: 'yellow' }
@@ -62,7 +62,7 @@ export function WeatherCard({ data }: WeatherCardProps) {
               <Text size="sm" c="dimmed">Rain</Text>
             </Group>
             <Group gap="xs" align="baseline">
-              <Text size="lg" fw={600}>{data?.rain?.toFixed(2) || '0.00'}</Text>
+              <Text size="lg" fw={600}>{data?.rain?.toFixed(2) ?? '—'}</Text>
               <Text size="sm" c="dimmed">in</Text>
             </Group>
           </Stack>
@@ -72,7 +72,7 @@ export function WeatherCard({ data }: WeatherCardProps) {
               <Text size="sm" c="dimmed">Rain Total</Text>
             </Group>
             <Group gap="xs" align="baseline">
-              <Text size="lg" fw={600}>{data?.dailyAccumulation?.toFixed(2) || '0.00'}</Text>
+              <Text size="lg" fw={600}>{data?.dailyAccumulation?.toFixed(2) ?? '—'}</Text>
               <Text size="sm" c="dimmed">in</Text>
             </Group>
           </Stack>                      
@@ -120,14 +120,14 @@ export function WeatherCard({ data }: WeatherCardProps) {
             <Text size="sm" c="dimmed">UV Index</Text>
             <Group gap="xs" align="baseline">
               <Text size="lg" fw={600}>{data?.uv?.toFixed(1) || '—'}</Text>
-              {data?.uv !== undefined && (
+              {data?.uv != null && (
                 <Badge size="sm" color={uvLevel.color}>{uvLevel.level}</Badge>
               )}
             </Group>
           </Stack>
         </Group>
         <Group grow>
-        {data?.vocLastMeasured !== undefined && (
+        {data?.vocLastMeasured != null && (
           <Stack gap="xs">
             <Text size="sm" c="dimmed">VOC (Air Quality)</Text>
             <Group gap="xs" align="baseline">
@@ -136,7 +136,7 @@ export function WeatherCard({ data }: WeatherCardProps) {
             </Group>
           </Stack>
         )}
-        {data?.illuminance !== undefined && (
+        {data?.illuminance != null && (
           <Stack gap="xs">
             <Group gap="xs">
               <IconSun size={16} />
@@ -150,7 +150,7 @@ export function WeatherCard({ data }: WeatherCardProps) {
         )}                  
         </Group>
 
-        {data?.strikeCount !== undefined && data.strikeCount > 0 && (
+        {data?.strikeCount != null && data.strikeCount > 0 && (
           <Group gap="xs">
             <IconBolt size={16} color="orange" />
             <Text size="sm" c="orange">

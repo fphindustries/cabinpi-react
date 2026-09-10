@@ -1,37 +1,15 @@
-import { useState, useEffect } from 'react';
 import { SimpleGrid, Stack, Text, Group, LoadingOverlay } from '@mantine/core';
 import { WeatherCard } from '../components/WeatherCard';
 import { InsideClimateCard } from '../components/InsideClimateCard';
 import { SolarPowerCard } from '../components/SolarPowerCard';
 import { InverterCard } from '../components/InverterCard';
 import { DCPowerCard } from '../components/DCPowerCard';
-import { getLatestSensorData } from '../lib/api';
+import { useApi } from '../hooks/useApi';
+import { formatChartDate } from '../lib/dateUtils';
 import type { LatestSensorResponse } from '../types/api';
 
 export default function Home() {
-  const [data, setData] = useState<LatestSensorResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        const result = await getLatestSensorData();
-        setData(result);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchData();
-    const interval = setInterval(fetchData, 300000); // Refresh every 5 minutes
-
-    return () => clearInterval(interval);
-  }, []);
+  const { data, loading, error } = useApi<LatestSensorResponse>('/api/sensors/latest', 300000);
 
   return (
     <Stack gap="xl" pos="relative">
@@ -45,10 +23,7 @@ export default function Home() {
             <div>
               <Text size="sm" c="dimmed">
                 Updated: {data?.data.date
-                  ? new Date(data.data.date).toLocaleString('en-US', {
-                      dateStyle: 'short',
-                      timeStyle: 'short'
-                    })
+                  ? `${formatChartDate(data.data.date)} Pacific`
                   : 'N/A'}
               </Text>
             </div>

@@ -1,8 +1,8 @@
-import ReactECharts from 'echarts-for-react';
+import { EChart } from './EChart';
 import type { EChartsOption } from 'echarts';
 
 interface LineChartEChartsProps {
-  data: any[];
+  data: Record<string, string | number | null | undefined>[];
   dataKey: string;
   series: Array<{
     name: string;
@@ -13,8 +13,8 @@ interface LineChartEChartsProps {
   height?: number;
   yAxisLabel?: string;
   rightYAxisLabel?: string;
-  yAxisDomain?: [number | string, number | string];
-  rightYAxisDomain?: [number | string, number | string];
+  yAxisDomain?: [number | 'dataMin', number | 'dataMax'];
+  rightYAxisDomain?: [number | 'dataMin', number | 'dataMax'];
   options?: Partial<EChartsOption>;
 }
 
@@ -49,7 +49,7 @@ export function LineChartECharts({
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: data.map(item => item[dataKey]),
+      data: data.map(item => item[dataKey] ?? ''),
       axisLabel: {
         rotate: 45,
         fontSize: 10,
@@ -86,7 +86,7 @@ export function LineChartECharts({
     series: series.map(s => ({
       name: s.label,
       type: 'line',
-      smooth: true,
+      smooth: false,
       yAxisIndex: s.yAxisId === 'right' ? 1 : 0,
       data: data.map(item => item[s.name]),
       itemStyle: {
@@ -97,7 +97,7 @@ export function LineChartECharts({
         width: 2,
       },
       showSymbol: false,
-      connectNulls: true,
+      connectNulls: false,
     })),
   };
 
@@ -116,10 +116,9 @@ export function LineChartECharts({
     : defaultOption;
 
   return (
-    <ReactECharts
+    <EChart
       option={option}
-      style={{ height: `${height}px`, width: '100%' }}
-      opts={{ renderer: 'canvas' }}
+      height={height}
     />
   );
 }

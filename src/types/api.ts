@@ -1,46 +1,5 @@
-export interface SensorData {
-  ampHours?: number;
-  avgStrikeDistance?: number;
-  batteryState?: number;
-  chargeState?: number;
-  classicState?: number;
-  dailyAccumulation?: number;
-  date?: string;
-  dispavgVbatt?: number;
-  dispavgVpv?: number;
-  extF?: number;
-  extHumidity?: number;
-  humidity?: number;
-  ibattDisplay?: number;
-  illuminance?: number;
-  inHg?: number;
-  intF?: number;
-  inverterAacOut?: number;
-  inverterFault?: number;
-  inverterMode?: number;
-  inverterOn?: boolean;
-  inverterVacOut?: number;
-  kwhours?: number;
-  niteMinutesNoPwr?: number;
-  pvInputCurrent?: number;
-  rain?: number;
-  solarRadiation?: number;
-  strikeCount?: number;
-  uv?: number;
-  vocLastMeasured?: number;
-  watts?: number;
-  windAvg?: number;
-  windDirection?: number;
-  windGust?: number;
-  // DC Power Monitor fields (INA228)
-  dcBusVoltage?: number;
-  dcCurrent?: number;
-  dcPower?: number;
-  dcShuntVoltage?: number;
-  // Basement temperature fields (DS18B20)
-  basementF?: number;
-  basementC?: number;
-}
+import type { SensorData } from '../../shared/sensors';
+export type { SensorData } from '../../shared/sensors';
 
 export interface LatestSensorResponse {
   count: number;
@@ -49,12 +8,15 @@ export interface LatestSensorResponse {
 }
 
 export interface SensorResponse {
+  truncated: boolean;
   count: number;
   data: SensorData[];
   success: boolean;
 }
 
 export interface Photo {
+  key: string;
+  camera: string;
   filename: string;
   timestamp: string;
   url: string;
@@ -62,24 +24,10 @@ export interface Photo {
 
 export interface PhotoResponse {
   count: number;
-  date: string;
+  date: string | null;
   photos: Photo[];
+  cursor: string | null;
   success: boolean;
-}
-
-export interface ErrorResponse {
-  error: string;
-  success: boolean;
-}
-
-export interface SensorIngestRequest {
-  records: SensorData[];
-}
-
-export interface SensorIngestResponse {
-  success: boolean;
-  inserted: number;
-  total: number;
 }
 
 export interface User {

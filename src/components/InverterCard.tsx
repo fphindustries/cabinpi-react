@@ -7,8 +7,8 @@ interface InverterCardProps {
 }
 
 export function InverterCard({ data }: InverterCardProps) {
-  const getInverterModeLabel = (mode?: number) => {
-    if (mode === undefined) return 'Unknown'
+  const getInverterModeLabel = (mode?: number | null) => {
+    if (mode == null) return 'Unknown'
 
     const modes: Record<number, string> = {
       0x00: 'Standby',
@@ -27,8 +27,8 @@ export function InverterCard({ data }: InverterCardProps) {
     return modes[mode] || `Unknown Mode (0x${mode.toString(16).toUpperCase()})`
   }
 
-  const getFaultLabel = (fault?: number) => {
-    if (fault === undefined || fault === 0x00) return null
+  const getFaultLabel = (fault?: number | null) => {
+    if (fault == null || fault === 0x00) return null
 
     const faults: Record<number, string> = {
       0x00: 'None',
@@ -93,7 +93,7 @@ export function InverterCard({ data }: InverterCardProps) {
             <Text size="sm" c="dimmed">Output</Text>
             <Group gap="xs" align="baseline">
               <Text size="xl" fw={700}>
-                {data?.inverterVacOut && data?.inverterAacOut
+                {data?.inverterVacOut != null && data?.inverterAacOut != null
                   ? (data.inverterVacOut * data.inverterAacOut).toFixed(0)
                   : '—'}
               </Text>
@@ -102,7 +102,7 @@ export function InverterCard({ data }: InverterCardProps) {
           </Stack>
         </Group>
 
-        {data?.inverterMode !== undefined && (
+        {data?.inverterMode != null && (
           <Badge variant="light" color="blue" fullWidth>
             Mode: {getInverterModeLabel(data.inverterMode)}
           </Badge>
@@ -117,7 +117,7 @@ export function InverterCard({ data }: InverterCardProps) {
           </Group>
         )}
 
-        {data?.niteMinutesNoPwr !== undefined && data.niteMinutesNoPwr > 0 && (
+        {data?.niteMinutesNoPwr != null && data.niteMinutesNoPwr > 0 && (
           <Text size="sm" c="dimmed">
             Minutes without power last night: {data.niteMinutesNoPwr}
           </Text>
