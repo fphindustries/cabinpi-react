@@ -22,6 +22,7 @@
   "r2_buckets": [
     { "binding": "PHOTOS", "bucket_name": "cabin-photos" }
   ],
+  "images": { "binding": "IMAGES" },
   "vars": {
     "ACCESS_TEAM_DOMAIN": "https://fphi.cloudflareaccess.com",
     "ACCESS_AUD": "e22e46957017da28ea77fb8f6f70af8665e36d1340841c9ce925103e36c4b46c"

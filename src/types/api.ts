@@ -20,6 +20,7 @@ export interface Photo {
   filename: string;
   timestamp: string;
   url: string;
+  thumbnailUrl: string;
 }
 
 export interface PhotoResponse {

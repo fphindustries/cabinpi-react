@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { authenticate, type RequestData } from '../server/auth';
 import { HttpError, json } from '../server/http';
 import { latestSensor, querySensors } from '../server/sensors';
-import { listPhotos, readPhoto } from '../server/photos';
+import { listPhotos, readPhoto, readPhotoThumbnail } from '../server/photos';
 
 type Variables = { identity?: RequestData['identity'] };
 const app = new Hono<{ Bindings: Env; Variables: Variables }>();
@@ -35,9 +35,12 @@ app.on(READ_METHODS, '/api/sensors', async c =>
 // A single route covers both the collection and nested object keys, matching
 // the prior Pages catch-all behavior for /api/photos and /api/photos/*.
 app.on(READ_METHODS, ['/api/photos', '/api/photos/*'], async c => {
-  const pathname = new URL(c.req.url).pathname;
-  const key = pathname === '/api/photos' ? '' : decodeURIComponent(pathname.slice('/api/photos/'.length));
-  return key ? readPhoto(c.env.PHOTOS, key, c.req.raw) : json(await listPhotos(c.env.PHOTOS, new URL(c.req.url).searchParams));
+  const url = new URL(c.req.url);
+  const key = url.pathname === '/api/photos' ? '' : decodeURIComponent(url.pathname.slice('/api/photos/'.length));
+  if (!key) return json(await listPhotos(c.env.PHOTOS, url.searchParams));
+  return url.searchParams.has('thumbnail')
+    ? readPhotoThumbnail(c.env.PHOTOS, c.env.IMAGES, key, c.req.raw)
+    : readPhoto(c.env.PHOTOS, key, c.req.raw);
 });
 
 app.notFound(() => json({ success: false, error: 'API route not found' }, 404));

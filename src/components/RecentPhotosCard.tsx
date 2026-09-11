@@ -1,15 +1,18 @@
-import { Anchor, Card, Group, Image, SimpleGrid, Skeleton, Stack, Text, Title } from '@mantine/core';
+import { useState } from 'react';
+import { Anchor, Card, Group, Image, SimpleGrid, Skeleton, Stack, Text, Title, UnstyledButton } from '@mantine/core';
 import { IconPhoto } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
 import { recentPhotosPath } from '../lib/api';
 import { formatChartDate } from '../lib/dateUtils';
-import type { PhotoResponse } from '../types/api';
+import { PhotoViewerModal } from './PhotoViewerModal';
+import type { Photo, PhotoResponse } from '../types/api';
 
 const PHOTO_COUNT = 4;
 
 export function RecentPhotosCard() {
   const { data, loading, error } = useApi<PhotoResponse>(recentPhotosPath(), 300000);
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const photos = [...(data?.photos ?? [])]
     .sort((left, right) => right.timestamp.localeCompare(left.timestamp) || left.camera.localeCompare(right.camera))
     .slice(0, PHOTO_COUNT);
@@ -32,16 +35,17 @@ export function RecentPhotosCard() {
         {!loading && !error && photos.length === 0 && <Text c="dimmed">No photos available.</Text>}
         {!loading && !error && photos.length > 0 && <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
           {photos.map(photo => (
-            <Anchor component={Link} to="/photos" key={photo.key} underline="never" c="inherit"
+            <UnstyledButton type="button" key={photo.key} onClick={() => setSelectedPhoto(photo)}
               aria-label={`View ${photo.camera} captured ${formatChartDate(photo.timestamp)}`}>
-              <Image src={photo.url} alt={`${photo.camera}, ${formatChartDate(photo.timestamp)} Pacific`}
+              <Image src={photo.thumbnailUrl} alt={`${photo.camera}, ${formatChartDate(photo.timestamp)} Pacific`}
                 h={150} fit="cover" radius="sm" loading="lazy" decoding="async" />
               <Text size="sm" fw={500} mt={4} lineClamp={1}>{photo.camera}</Text>
               <Text size="xs" c="dimmed">{formatChartDate(photo.timestamp)} Pacific</Text>
-            </Anchor>
+            </UnstyledButton>
           ))}
         </SimpleGrid>}
       </Stack>
+      <PhotoViewerModal photo={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
     </Card>
   );
 }

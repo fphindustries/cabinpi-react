@@ -63,6 +63,7 @@ All deployed API requests require a valid Cloudflare Access JWT for a user, veri
 | `GET /api/photos?date=&cursor=` | Up to 100 photos per R2 page, with opaque next `cursor`; omitted date selects latest day containing supported photos |
 | `GET /api/photos?recent=4` | The four newest captures across date folders, used by the dashboard |
 | `GET /api/photos/YYYY/MM/DD/filename.jpg` | Stream original image with private browser caching, ETag, conditional GET, and HEAD |
+| `GET /api/photos/YYYY/MM/DD/filename.jpg?thumbnail=1` | 480px-wide JPEG thumbnail, resized via the Images binding; used by the gallery grid and dashboard card |
 
 Read endpoints also accept HEAD. Query bounds must be ordered `YYYY-MM-DDTHH:mm:ss` Pacific timestamps. Null numeric readings remain null; zero remains a real reading.
 
@@ -74,7 +75,7 @@ YYYY/MM/DD/Camera_Name-YYYY-MM-DD-HH-mm[-ss].jpg
 
 JPEG, PNG, WebP, and AVIF files with matching folder/capture dates are accepted. Other objects remain inaccessible through the photo API. Capture time comes from the filename, not the upload date. Latest-date discovery walks date prefixes rather than listing the full archive. Pagination follows R2 key order; the UI sorts the loaded photos by capture time. The date returned by the first page must be sent with subsequent cursors.
 
-R2 stores originals. The obsolete cabinpix `?size=` resizing path is removed. Images load lazily; full-size images are reused in the modal. If bandwidth becomes an issue, generate thumbnails during upload or add a Cloudflare Images binding as a separate enhancement.
+R2 stores originals. The gallery grid and the dashboard's "Latest Photos" card request `?thumbnail=1`, a 480px-wide JPEG resized on the fly through the `IMAGES` binding (`wrangler.jsonc`); the full-screen zoom modal still requests the original for detail. Thumbnails are not conditional-GET/ETag validated like originals — they rely on `Cache-Control: private, max-age=86400` for repeat-view caching, since re-running a transform is more expensive than re-streaming an R2 object. `wrangler dev` resizes for real locally; the isolated test suite's hand-built Miniflare instance has no `images` binding wired up, so `tests/storage.test.ts` exercises `readPhotoThumbnail`'s call shape against a fake `ImagesBinding` instead. Cloudflare Images transformations are billed beyond the account's free allotment — see [Images pricing](https://developers.cloudflare.com/images/pricing/).
 
 ## Deployment
 

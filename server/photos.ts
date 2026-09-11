@@ -4,6 +4,9 @@ import { HttpError } from './http';
 
 const PAGE_SIZE = 100;
 const RECENT_PHOTO_LIMIT = 4;
+const THUMBNAIL_WIDTH = 480;
+const THUMBNAIL_QUALITY = 75;
+const THUMBNAIL_CACHE_CONTROL = 'private, max-age=86400';
 const imageTypes: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif',
 };
@@ -14,9 +17,10 @@ export function photoFromKey(key: string): Photo | null {
   const [, year, month, day, camera, date, hour, minute, second = '00'] = match;
   const timestamp = `${date}T${hour}:${minute}:${second}`;
   if (date !== `${year}-${month}-${day}` || !isSensorTimestamp(timestamp)) return null;
+  const path = `/api/photos/${key.split('/').map(encodeURIComponent).join('/')}`;
   return {
     key, filename: key.slice(key.lastIndexOf('/') + 1), camera: camera.replaceAll('_', ' '), timestamp,
-    url: `/api/photos/${key.split('/').map(encodeURIComponent).join('/')}`,
+    url: path, thumbnailUrl: `${path}?thumbnail=1`,
   };
 }
 
@@ -137,4 +141,20 @@ export async function readPhoto(bucket: R2Bucket, key: string, request: Request)
   if (headNotModified || (request.method !== 'HEAD' && !hasBody(object))) return new Response(null, { status: 304, headers });
   headers.set('Content-Length', String(object.size));
   return new Response(hasBody(object) ? object.body : null, { headers });
+}
+
+export async function readPhotoThumbnail(bucket: R2Bucket, images: ImagesBinding, key: string, request: Request): Promise<Response> {
+  if (!photoFromKey(key)) throw new HttpError(404, 'Photo not found');
+  if (request.method === 'HEAD') {
+    if (!await bucket.head(key)) throw new HttpError(404, 'Photo not found');
+    return new Response(null, { headers: {
+      'Content-Type': 'image/jpeg', 'Cache-Control': THUMBNAIL_CACHE_CONTROL, 'X-Content-Type-Options': 'nosniff',
+    } });
+  }
+  const object = await bucket.get(key);
+  if (!object) throw new HttpError(404, 'Photo not found');
+  const result = await images.input(object.body)
+    .transform({ width: THUMBNAIL_WIDTH })
+    .output({ format: 'image/jpeg', quality: THUMBNAIL_QUALITY });
+  return result.response({ headers: { 'Cache-Control': THUMBNAIL_CACHE_CONTROL, 'X-Content-Type-Options': 'nosniff' } });
 }

@@ -1,8 +1,31 @@
 import { beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { Miniflare, convertV4MiniflareOptions, Headers as RuntimeHeaders } from 'miniflare';
 import { readFile } from 'node:fs/promises';
-import { listPhotos, photoFromKey, readPhoto } from '../server/photos';
+import { listPhotos, photoFromKey, readPhoto, readPhotoThumbnail } from '../server/photos';
 import { latestSensor, querySensors } from '../server/sensors';
+
+// The real Images binding always proxies to Cloudflare (like AI/browser-rendering),
+// with no offline emulation, so exercise our transform call shape against a fake
+// rather than requiring network access in an otherwise isolated test.
+function fakeImages(): { images: ImagesBinding; calls: unknown[] } {
+  const calls: unknown[] = [];
+  const transformer = {
+    transform: (options: unknown) => { calls.push({ transform: options }); return transformer; },
+    draw: () => transformer,
+    output: async (options: { format: string }) => {
+      calls.push({ output: options });
+      return {
+        response: (opts?: { headers?: HeadersInit }) => new Response('thumbnail bytes', { headers: { 'Content-Type': options.format, ...opts?.headers } }),
+        contentType: () => options.format,
+        image: () => new ReadableStream(),
+      };
+    },
+  };
+  const images = {
+    input: (stream: ReadableStream) => { calls.push({ input: stream }); return transformer; },
+  } as unknown as ImagesBinding;
+  return { images, calls };
+}
 
 const mf = new Miniflare(convertV4MiniflareOptions({ modules: true, script: 'export default { fetch() { return new Response("test"); } }',
   compatibilityDate: '2026-09-09', d1Databases: ['DB'], r2Buckets: ['PHOTOS'] }));
@@ -36,7 +59,10 @@ afterAll(async () => { await mf.dispose(); vi.unstubAllGlobals(); });
 
 describe('R2 photos', () => {
   it('uses capture time from the filename, not upload time', () => {
-    expect(photoFromKey(photoKey)).toMatchObject({ camera: 'Fire Pit', timestamp: '2026-09-08T19:41:00', key: photoKey });
+    expect(photoFromKey(photoKey)).toMatchObject({
+      camera: 'Fire Pit', timestamp: '2026-09-08T19:41:00', key: photoKey,
+      url: `/api/photos/${photoKey}`, thumbnailUrl: `/api/photos/${photoKey}?thumbnail=1`,
+    });
     expect(photoFromKey('2026/09/09/Fire_Pit-2026-09-08-19-41.jpg')).toBeNull();
     expect(photoFromKey('2026/02/30/Parking-2026-02-30-19-41.jpg')).toBeNull();
   });
@@ -80,6 +106,23 @@ describe('R2 photos', () => {
     const head = await readPhoto(bucket, photoKey, new Request('http://localhost', { method: 'HEAD' }));
     expect(await head.text()).toBe('');
     expect(head.headers.get('Content-Length')).toBe('11');
+  });
+  it('resizes thumbnails through the Images binding, without transforming for HEAD or missing photos', async () => {
+    const { images, calls } = fakeImages();
+    const response = await readPhotoThumbnail(bucket, images, photoKey, new Request('http://localhost'));
+    expect(await response.text()).toBe('thumbnail bytes');
+    expect(response.headers.get('Content-Type')).toBe('image/jpeg');
+    expect(response.headers.get('Cache-Control')).toContain('private');
+    expect(calls).toEqual([
+      { input: expect.anything() },
+      { transform: { width: 480 } },
+      { output: { format: 'image/jpeg', quality: 75 } },
+    ]);
+    const head = await readPhotoThumbnail(bucket, images, photoKey, new Request('http://localhost', { method: 'HEAD' }));
+    expect(await head.text()).toBe('');
+    expect(calls).toHaveLength(3); // HEAD must not invoke a paid transform
+    await expect(readPhotoThumbnail(bucket, images, '2026/09/09/private.json', new Request('http://localhost'))).rejects.toMatchObject({ status: 404 });
+    await expect(readPhotoThumbnail(bucket, images, '2026/09/09/Missing-2026-09-09-00-00.jpg', new Request('http://localhost', { method: 'HEAD' }))).rejects.toMatchObject({ status: 404 });
   });
 });
 

@@ -15,7 +15,8 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 function photo(camera: string, time = '10:00') {
   const filename = `${camera}-2026-09-08-${time.replace(':', '-')}.jpg`;
-  return { key: `2026/09/08/${filename}`, filename, camera, timestamp: `2026-09-08T${time}:00`, url: `/api/photos/2026/09/08/${filename}` };
+  const url = `/api/photos/2026/09/08/${filename}`;
+  return { key: `2026/09/08/${filename}`, filename, camera, timestamp: `2026-09-08T${time}:00`, url, thumbnailUrl: `${url}?thumbnail=1` };
 }
 function response(photos = [photo('Fire Pit')], cursor: string | null = null, date: string | null = '2026-09-08') {
   return Response.json({ success: true, photos, cursor, date, count: photos.length });
