@@ -19,6 +19,10 @@ export function photosPath(date?: string | null, cursor?: string | null): string
   return `/api/photos?${params}`;
 }
 
+export function recentPhotosPath(): string {
+  return '/api/photos?recent=4';
+}
+
 export function fetchPhotos(date: string, cursor: string, signal: AbortSignal): Promise<PhotoResponse> {
   return apiRequest(photosPath(date, cursor), signal);
 }

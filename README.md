@@ -61,6 +61,7 @@ All deployed API requests require a valid Cloudflare Access JWT for a user, veri
 | `GET /api/sensors?start=&stop=&limit=` | Readings in descending date order; default limit 1,000, maximum 10,000; `truncated` indicates more data |
 | `GET /api/sensors/daily?start=&stop=&limit=` | Maximum per field per Pacific calendar day; same limit/truncation contract |
 | `GET /api/photos?date=&cursor=` | Up to 100 photos per R2 page, with opaque next `cursor`; omitted date selects latest day containing supported photos |
+| `GET /api/photos?recent=4` | The four newest captures across date folders, used by the dashboard |
 | `GET /api/photos/YYYY/MM/DD/filename.jpg` | Stream original image with private browser caching, ETag, conditional GET, and HEAD |
 
 Read endpoints also accept HEAD. Query bounds must be ordered `YYYY-MM-DDTHH:mm:ss` Pacific timestamps. Null numeric readings remain null; zero remains a real reading.

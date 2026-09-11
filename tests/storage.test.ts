@@ -50,6 +50,17 @@ describe('R2 photos', () => {
     expect(next.cursor).toBeNull();
     expect(new Set([...first.photos, ...next.photos].map(photo => photo.key)).size).toBe(103);
   });
+  it('returns four newest captures even when they span several dates', async () => {
+    await bucket.put('2026/09/10/Fire_Pit-2026-09-10-08-00.jpg', 'image');
+    await bucket.put('2026/09/10/Parking-2026-09-10-10-00.jpg', 'image');
+    await bucket.put('2026/09/10/Marks_Cabin-2026-09-10-09-00.jpg', 'image');
+    const recent = await listPhotos(bucket, new URLSearchParams({ recent: '4' }));
+    expect(recent).toMatchObject({ count: 4, date: '2026-09-10', cursor: null });
+    expect(recent.photos.map(photo => photo.timestamp)).toEqual([
+      '2026-09-10T10:00:00', '2026-09-10T09:00:00', '2026-09-10T08:00:00', '2026-09-09T10:00:00',
+    ]);
+    await expect(listPhotos(bucket, new URLSearchParams({ recent: '3' }))).rejects.toMatchObject({ status: 400 });
+  });
   it('returns a useful empty date and validates input', async () => {
     expect(await listPhotos(bucket, new URLSearchParams({ date: '2020-01-01' }))).toMatchObject({ photos: [], date: '2020-01-01', cursor: null });
     await expect(listPhotos(bucket, new URLSearchParams({ date: '2026-02-30' }))).rejects.toMatchObject({ status: 400 });
@@ -73,6 +84,16 @@ describe('R2 photos', () => {
 });
 
 describe('D1 sensors', () => {
+  it('uses the date index without a temporary sort for latest and range reads', async () => {
+    const latest = await db.prepare('EXPLAIN QUERY PLAN SELECT * FROM measurements ORDER BY date DESC LIMIT 1').all<{ detail: string }>();
+    const range = await db.prepare('EXPLAIN QUERY PLAN SELECT * FROM measurements WHERE date >= ?1 AND date <= ?2 ORDER BY date DESC LIMIT ?3')
+      .bind('2026-09-09T00:00:00', '2026-09-09T23:59:59', 1001).all<{ detail: string }>();
+    for (const plan of [latest, range]) {
+      const details = plan.results.map(row => row.detail).join('\n');
+      expect(details).toContain('idx_measurements_date');
+      expect(details).not.toMatch(/TEMP B-TREE/i);
+    }
+  });
   it('maps persisted readings, including zeros and nulls', async () => {
     const latest = await latestSensor(db);
     expect(latest.data).toMatchObject({ watts: 100, inverterOn: true, inverterAacOut: 0, basementF: null });

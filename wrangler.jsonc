@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cabinpi-react",
+  "name": "cabinpi-react", //Remove -local before deployment
   "compatibility_date": "2026-09-09",
   "pages_build_output_dir": "./dist",
   "d1_databases": [

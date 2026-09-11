@@ -22,7 +22,7 @@ function queryRange(params: URLSearchParams): [string, string] {
 }
 
 export async function latestSensor(db: D1Database): Promise<LatestSensorResponse> {
-  const row = await db.prepare(`SELECT ${selectColumns} FROM measurements ORDER BY date DESC, id DESC LIMIT 1`).first<SensorRow>();
+  const row = await db.prepare(`SELECT ${selectColumns} FROM measurements ORDER BY date DESC LIMIT 1`).first<SensorRow>();
   if (!row) throw new HttpError(404, 'No measurements found');
   return { success: true, count: 1, data: fromRow(row) };
 }
@@ -36,7 +36,7 @@ export async function querySensors(db: D1Database, params: URLSearchParams, dail
   }
   const sql = daily
     ? `SELECT ${dailyColumns} FROM measurements WHERE date >= ?1 AND date <= ?2 GROUP BY DATE(date) ORDER BY date DESC LIMIT ?3`
-    : `SELECT ${selectColumns} FROM measurements WHERE date >= ?1 AND date <= ?2 ORDER BY date DESC, id DESC LIMIT ?3`;
+    : `SELECT ${selectColumns} FROM measurements WHERE date >= ?1 AND date <= ?2 ORDER BY date DESC LIMIT ?3`;
   const results = await db.prepare(sql).bind(start, stop, limit + 1).all<SensorRow>();
   const data = results.results.slice(0, limit).map(fromRow);
   return { success: true, count: data.length, data, truncated: results.results.length > limit };

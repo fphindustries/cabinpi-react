@@ -30,6 +30,7 @@ describe('compiled Pages routes', () => {
       expect(response.status).toBe(200);
       expect(await response.json()).toMatchObject({ count: 1, date: '2026-09-08', photos: [{ key }] });
     }
+    expect(await (await local('/api/photos?recent=4')).json()).toMatchObject({ count: 1, photos: [{ key }], cursor: null });
     const image = await local(`/api/photos/${key}`);
     expect(image.status).toBe(200);
     expect(image.headers.get('Content-Type')).toBe('image/png');

@@ -3,6 +3,7 @@ import { isDateOnly, isSensorTimestamp } from '../shared/dates';
 import { HttpError } from './http';
 
 const PAGE_SIZE = 100;
+const RECENT_PHOTO_LIMIT = 4;
 const imageTypes: Record<string, string> = {
   jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif',
 };
@@ -57,7 +58,46 @@ async function latestDate(bucket: R2Bucket): Promise<string | null> {
   return null;
 }
 
+async function photosForDate(bucket: R2Bucket, date: string): Promise<Photo[]> {
+  const photos: Photo[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await bucket.list({ prefix: `${date.replaceAll('-', '/')}/`, limit: PAGE_SIZE, cursor });
+    photos.push(...page.objects.map(object => photoFromKey(object.key)).filter((photo): photo is Photo => photo !== null));
+    cursor = page.truncated ? page.cursor : undefined;
+  } while (cursor);
+  return photos;
+}
+
+/** Return the newest captures across date folders, regardless of camera-key ordering. */
+async function listRecentPhotos(bucket: R2Bucket): Promise<PhotoResponse> {
+  const photos: Photo[] = [];
+  for (const year of await folders(bucket, '', /^\d{4}\/$/)) {
+    for (const month of await folders(bucket, year, /^\d{4}\/(?:0[1-9]|1[0-2])\/$/)) {
+      for (const day of await folders(bucket, month, /^\d{4}\/\d{2}\/\d{2}\/$/)) {
+        const date = day.slice(0, -1).replaceAll('/', '-');
+        if (!isDateOnly(date)) continue;
+        photos.push(...await photosForDate(bucket, date));
+        if (photos.length >= RECENT_PHOTO_LIMIT) {
+          const recent = photos.sort((left, right) => right.timestamp.localeCompare(left.timestamp) || left.camera.localeCompare(right.camera))
+            .slice(0, RECENT_PHOTO_LIMIT);
+          return { success: true, count: recent.length, date: recent[0]?.timestamp.slice(0, 10) ?? null, photos: recent, cursor: null };
+        }
+      }
+    }
+  }
+  const recent = photos.sort((left, right) => right.timestamp.localeCompare(left.timestamp) || left.camera.localeCompare(right.camera));
+  return { success: true, count: recent.length, date: recent[0]?.timestamp.slice(0, 10) ?? null, photos: recent, cursor: null };
+}
+
 export async function listPhotos(bucket: R2Bucket, params: URLSearchParams): Promise<PhotoResponse> {
+  const recent = params.get('recent');
+  if (recent !== null) {
+    if (recent !== String(RECENT_PHOTO_LIMIT) || params.size !== 1) {
+      throw new HttpError(400, `Recent photos must request exactly ${RECENT_PHOTO_LIMIT} items`);
+    }
+    return listRecentPhotos(bucket);
+  }
   const requestedDate = params.get('date');
   const cursor = params.get('cursor') || undefined;
   if (requestedDate !== null && !isDateOnly(requestedDate)) throw new HttpError(400, 'Date must be YYYY-MM-DD');

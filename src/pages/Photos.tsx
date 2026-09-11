@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Stack, Card, Group, Text, Button, Image, SimpleGrid, Modal, Alert, Loader } from '@mantine/core';
+import { ActionIcon, Box, Stack, Card, Group, Text, Button, Image, SimpleGrid, Modal, Alert, Loader } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
-import { IconCalendar, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
+import { IconCalendar, IconChevronLeft, IconChevronRight, IconZoomIn, IconZoomOut } from '@tabler/icons-react';
 import { fetchPhotos, photosPath } from '../lib/api';
 import { dateParam, pacificToday, shiftDay } from '../lib/dateUtils';
 import { useApi } from '../hooks/useApi';
@@ -22,6 +22,7 @@ function PhotoGallery({ date, onDateChange }: { date: string | null; onDateChang
   const [loadingMore, setLoadingMore] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [zoom, setZoom] = useState(1);
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
   const photos = [...new Map([...(data?.photos ?? []), ...extra].map(photo => [photo.key, photo])).values()]
@@ -29,6 +30,8 @@ function PhotoGallery({ date, onDateChange }: { date: string | null; onDateChang
   const cursor = nextCursor === undefined ? data?.cursor : nextCursor;
   const displayedDate = data?.date ?? date;
   const today = pacificToday();
+  const closePhoto = () => { setSelectedPhoto(null); setZoom(1); };
+  const selectPhoto = (photo: Photo) => { setSelectedPhoto(photo); setZoom(1); };
 
   async function loadMore() {
     if (!cursor || !displayedDate || pending.current) return;
@@ -70,7 +73,7 @@ function PhotoGallery({ date, onDateChange }: { date: string | null; onDateChang
           {photos.map(photo => (
             <Card component="button" type="button" key={photo.key} shadow="sm" padding="xs" radius="md" withBorder
               aria-label={`View ${photo.camera} at ${photo.timestamp.slice(11, 16)}`}
-              style={{ cursor: 'pointer' }} onClick={() => setSelectedPhoto(photo)}>
+              style={{ cursor: 'pointer' }} onClick={() => selectPhoto(photo)}>
               <Image src={photo.url} alt={`${photo.camera}, ${photo.timestamp}`} h={200} fit="cover" loading="lazy" decoding="async" />
               <Text size="sm" mt="xs">{photo.camera}</Text>
               <Text size="xs" c="dimmed">{photo.timestamp.slice(11, 16)} Pacific</Text>
@@ -81,10 +84,24 @@ function PhotoGallery({ date, onDateChange }: { date: string | null; onDateChang
         {pageError && <Alert color="red">{pageError}</Alert>}
         {cursor && <Button onClick={() => { void loadMore(); }} loading={loadingMore} variant="light">Load more photos</Button>}
       </>}
-      <Modal opened={selectedPhoto !== null} onClose={() => setSelectedPhoto(null)} size="xl"
+      <Modal opened={selectedPhoto !== null} onClose={closePhoto} fullScreen
         closeButtonProps={{ 'aria-label': 'Close photo' }}
-        title={selectedPhoto ? `${selectedPhoto.camera} — ${selectedPhoto.timestamp.replace('T', ' ')} Pacific` : ''}>
-        {selectedPhoto && <Image src={selectedPhoto.url} alt={selectedPhoto.camera} fit="contain" />}
+        styles={{ body: { height: 'calc(100dvh - 64px)', overflow: 'hidden', padding: 0 } }}
+        title={selectedPhoto && <Group gap="xs" wrap="nowrap">
+          <Text lineClamp={1}>{selectedPhoto.camera} — {selectedPhoto.timestamp.replace('T', ' ')} Pacific</Text>
+          <Group gap={4} wrap="nowrap">
+            <ActionIcon variant="default" aria-label="Zoom out" disabled={zoom <= 1}
+              onClick={() => setZoom(value => Math.max(1, value - 0.25))}><IconZoomOut size={18} /></ActionIcon>
+            <Button variant="default" size="compact-sm" aria-label="Reset zoom" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</Button>
+            <ActionIcon variant="default" aria-label="Zoom in" disabled={zoom >= 4}
+              onClick={() => setZoom(value => Math.min(4, value + 0.25))}><IconZoomIn size={18} /></ActionIcon>
+          </Group>
+        </Group>}>
+        {selectedPhoto && <Box aria-label="Zoomed photo viewer" style={{ height: '100%', overflow: 'auto', background: 'var(--mantine-color-dark-9)' }}>
+          <Box data-testid="photo-zoom-canvas" style={{ width: `${zoom * 100}%`, minWidth: '100%', minHeight: '100%', display: 'flex', alignItems: 'center' }}>
+            <Image src={selectedPhoto.url} alt={selectedPhoto.camera} w="100%" fit="contain" />
+          </Box>
+        </Box>}
       </Modal>
     </Stack>
   );

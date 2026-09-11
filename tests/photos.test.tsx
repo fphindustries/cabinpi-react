@@ -25,13 +25,17 @@ function gallery() {
 }
 
 describe('Photo gallery', () => {
-  it('loads another page and opens an accessible photo modal', async () => {
+  it('loads another page and opens a full-screen, zoomable photo modal', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response([photo('Fire Pit')], 'next'))
       .mockResolvedValueOnce(response([photo('Parking', '11:00')]));
     gallery();
     const card = await screen.findByRole('button', { name: 'View Fire Pit at 10:00' });
     fireEvent.click(card);
     expect(await screen.findByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Zoom out' }).hasAttribute('disabled')).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(screen.getByTestId('photo-zoom-canvas').style.width).toBe('125%');
+    expect(screen.getByRole('button', { name: 'Reset zoom' }).textContent).toBe('125%');
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: 'Load more photos' }));
