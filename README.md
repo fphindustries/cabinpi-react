@@ -1,6 +1,6 @@
 # CabinPi
 
-React SPA for cabin sensors, historical charts, analysis, and camera photos. Deployed on Cloudflare Pages at `cabinpi.com`, with Pages Functions using D1 and a private R2 bucket directly.
+React SPA for cabin sensors, historical charts, analysis, and camera photos. Deployed on Cloudflare Workers at `cabinpi.com`: Workers Static Assets serves the built SPA, and a single Worker (`worker/index.ts`) handles `/api/*` using D1 and a private R2 bucket directly.
 
 ## Development
 
@@ -12,7 +12,7 @@ npm run db:migrate:local
 npm run dev:full
 ```
 
-Open `http://127.0.0.1:5173`. Vite provides hot reload and proxies `/api` to the Pages Functions server on port 8788. `dev.ps1` launches the same workflow on Windows. `npm run preview` builds and serves the frontend and Functions together.
+Open `http://127.0.0.1:5173`. Vite provides hot reload and proxies `/api` to the Worker dev server on port 8788. `dev.ps1` launches the same workflow on Windows. `npm run preview` builds and serves the frontend and Worker together.
 
 D1 and R2 use **local storage by default**. Local data is separate from production. No outbound cabinpix credentials or local secrets are required. Old `.env` credentials are unused; the type-generation script ignores them. API authentication is bypassed only on loopback hostnames for local development. Keep local servers bound to loopback.
 
@@ -35,11 +35,11 @@ npm run check
 npm audit
 ```
 
-`check` regenerates Cloudflare types, checks frontend and backend TypeScript, lints, compiles Pages Functions, runs regression tests, and builds the SPA. Tests use isolated Miniflare D1/R2 instances and React Testing Library. They do not access production resources. The compiled routing tests catch Pages catch-all precedence problems.
+`check` regenerates Cloudflare types, checks frontend and backend TypeScript, lints, builds the SPA, bundles the Worker, and runs regression tests. Tests use isolated Miniflare D1/R2 instances and React Testing Library. They do not access production resources. The compiled routing tests exercise the bundled Worker end to end, including route precedence and the shared photo collection/object handler.
 
 ## Architecture
 
-- `functions/api/`: thin Pages handlers, shared authentication/method/error middleware, and JSON 404 fallback.
+- `worker/index.ts`: single Hono Worker handling `/api/*` — shared authentication/method/error middleware, route handlers, and JSON 404 fallback. Workers Static Assets serves everything else from `dist/`, with single-page-application fallback for client-side routes.
 - `server/`: R2 photo operations, D1 queries, and Access JWT verification.
 - `shared/sensors.ts`: numeric sensor field registry and nullable sensor type; SELECTs and daily MAXs derive from this registry.
 - `shared/dates.ts`: Pacific wall-clock validation and formatting.
@@ -83,8 +83,8 @@ npm run check
 npm run deploy
 ```
 
-Deployment requires Wrangler authentication. The Cloudflare plugin connection and Wrangler CLI credentials are separate. `wrangler.jsonc` supplies the D1 binding, new `PHOTOS` binding to `cabin-photos`, compatibility date, and non-secret Access settings. No production schema migration is required by this refactor.
+Deployment requires Wrangler authentication. The Cloudflare plugin connection and Wrangler CLI credentials are separate. `wrangler.jsonc` supplies the `main` Worker entry point, the `assets` block (SPA served from `dist/`, with `/api/*` routed to the Worker via `run_worker_first`), the D1 binding, the `PHOTOS` R2 binding, compatibility date, and non-secret Access settings. No production schema migration is required by this refactor.
 
-After deployment, verify Access login, the latest and dated galleries, a full image, and historical charts. Retire the old outbound `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` Pages environment entries. The existing `cabinpi-api` service token also protects `api.cabinpi.com`; do not revoke it or its reusable Access policy as part of this change.
+After deployment, verify Access login, the latest and dated galleries, a full image, and historical charts. Retire the old outbound `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET` environment entries. The existing `cabinpi-api` service token also protects `api.cabinpi.com`; do not revoke it or its reusable Access policy as part of this change.
 
-Preview deployments currently share the production D1 database and R2 bucket, matching the existing account configuration. Use separate bindings before connecting a preview to a writer. A Pages-to-Workers migration and its domain/Access cutover are described in [the architecture assessment](docs/architecture-assessment.md).
+Preview deployments currently share the production D1 database and R2 bucket, matching the existing account configuration. Use separate bindings before connecting a preview to a writer. The prior Pages architecture and the rationale for this Workers migration are described in [the architecture assessment](docs/architecture-assessment.md) and [the migration goal](docs/workers-migration-goal.md).

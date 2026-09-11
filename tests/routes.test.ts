@@ -23,7 +23,7 @@ beforeAll(async () => {
 afterAll(() => mf.dispose());
 const local = (path: string, init?: RequestInit) => mf.dispatchFetch(`http://localhost${path}`, init);
 
-describe('compiled Pages routes', () => {
+describe('compiled Worker routes', () => {
   it('routes photo listing and nested keys independently', async () => {
     for (const path of ['/api/photos', '/api/photos/']) {
       const response = await local(path);
@@ -42,7 +42,7 @@ describe('compiled Pages routes', () => {
     expect(await head.text()).toBe('');
   });
   it('enforces authentication, HTTP methods, JSON errors, and API 404s', async () => {
-    expect((await mf.dispatchFetch('https://cabinpi-react.pages.dev/api/photos', {
+    expect((await mf.dispatchFetch('https://cabinpi.com/api/photos', {
       headers: { 'cf-access-authenticated-user-email': 'spoof@example.com' },
     })).status).toBe(401);
     expect((await local('/api/photos', { method: 'POST' })).status).toBe(405);

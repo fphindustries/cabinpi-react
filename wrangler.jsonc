@@ -1,8 +1,16 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cabinpi-react", //Remove -local before deployment
+  "name": "cabinpi-dashboard", // Distinct from the pre-existing "cabinpi-react"/"cabinpi-test" Workers on this account
+  "main": "worker/index.ts",
   "compatibility_date": "2026-09-09",
-  "pages_build_output_dir": "./dist",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application",
+    // "/api" (no suffix) must be listed alongside "/api/*": the glob alone does not
+    // match the bare path, and single-page-application fallback would otherwise
+    // serve index.html for it instead of the Worker's JSON 404.
+    "run_worker_first": ["/api", "/api/*"]
+  },
   "d1_databases": [
     {
       "binding": "cabinpi_db",

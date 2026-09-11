@@ -1,5 +1,11 @@
 # Architecture assessment — September 9, 2026
 
+**Update 2026-09-10:** the Pages-to-Workers migration described below as
+future work has been completed — see README.md and
+[the migration goal](workers-migration-goal.md). This document otherwise
+remains an unedited point-in-time snapshot of the Pages architecture it
+reviewed.
+
 ## Verified infrastructure
 
 The Cloudflare plugin was used for read-only account inspection:

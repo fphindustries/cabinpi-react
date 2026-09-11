@@ -15,12 +15,12 @@ async function token(audience = env.ACCESS_AUD, expires = '2h', issuer = env.ACC
   return new SignJWT({ email: 'test@example.com' }).setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuer(issuer).setAudience(audience).setIssuedAt().setExpirationTime(expires).sign(keys.privateKey);
 }
-const request = (jwt?: string) => new Request('https://cabinpi-react.pages.dev/api/photos', {
+const request = (jwt?: string) => new Request('https://cabinpi.com/api/photos', {
   headers: { 'cf-access-authenticated-user-email': 'forged@example.com', ...(jwt ? { 'cf-access-jwt-assertion': jwt } : {}) },
 });
 
 describe('Access verification', () => {
-  it('rejects forged identity headers on the default Pages hostname', async () => {
+  it('rejects forged identity headers on a deployed hostname', async () => {
     await expect(authenticate(request(), env)).rejects.toMatchObject({ status: 401 });
   });
   it('verifies signed user identities', async () => {
